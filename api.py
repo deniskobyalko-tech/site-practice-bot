@@ -52,7 +52,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         if not student:
             raise HTTPException(404, "Student not found. Register first.")
         progress = await get_student_progress(conn, student["id"])
-        return {"student": student, "progress": progress}
+        return {"student": student, "progress": progress, "is_admin": telegram_id == admin_telegram_id}
 
     @app.post("/api/submit/{step}")
     async def submit_step(step: int, request: Request):
@@ -117,6 +117,17 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
             media_type="text/csv",
             headers={"Content-Disposition": "attachment; filename=practice_results.csv"},
         )
+
+    @app.post("/api/reset")
+    async def reset_submissions(request: Request):
+        telegram_id = get_telegram_id(request)
+        require_admin(telegram_id)
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found")
+        await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student["id"],))
+        await conn.commit()
+        return {"ok": True}
 
     # Store bot instance for notifications
     app.state.bot = None

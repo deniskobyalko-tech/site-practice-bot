@@ -102,6 +102,9 @@ async function loadStudent() {
         const completed = data.progress.completed_steps;
 
         if (data.progress.status === "submitted") {
+            if (data.is_admin) {
+                document.getElementById("btn-reset").style.display = "block";
+            }
             showScreen("screen-done");
             return;
         }
@@ -413,6 +416,18 @@ document.getElementById("btn-review").addEventListener("click", async () => {
 });
 
 document.getElementById("btn-back-review").addEventListener("click", () => showScreen("screen-done"));
+
+document.getElementById("btn-reset").addEventListener("click", () => {
+    tg.showConfirm("Обнулить все ответы и пройти заново?", async (ok) => {
+        if (!ok) return;
+        try {
+            await api("POST", "/api/reset", {});
+            window.location.reload();
+        } catch (e) {
+            tg.showAlert("Ошибка: " + e.message);
+        }
+    });
+});
 
 // --- Auto-save on blur ---
 
