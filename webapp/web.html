@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Практика: Бизнес-задачи сайтов</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Registration -->
+    <div id="screen-register" class="screen">
+        <h1>Регистрация</h1>
+        <div class="form-group">
+            <label>Группа</label>
+            <div class="group-buttons" id="group-select"></div>
+        </div>
+        <div class="form-group">
+            <label>ФИО</label>
+            <input type="text" id="reg-name" placeholder="Иванов Иван Иванович">
+        </div>
+        <button class="btn-primary" id="btn-register">Продолжить</button>
+    </div>
+
+    <!-- Progress bar -->
+    <div id="progress-bar" class="hidden">
+        <div class="step-indicator" data-step="1"><span>1</span> Анализ</div>
+        <div class="step-indicator" data-step="2"><span>2</span> Сравнение</div>
+        <div class="step-indicator" data-step="3"><span>3</span> Аудит</div>
+    </div>
+
+    <!-- Step 1: Site Analysis -->
+    <div id="screen-step1" class="screen hidden">
+        <h2>Шаг 1: Анализ сайта</h2>
+
+        <div class="form-group">
+            <label>Выберите сайт</label>
+            <select id="site-select"><option value="">Загрузка...</option></select>
+        </div>
+        <div class="form-group hidden" id="custom-url-group">
+            <label>URL сайта</label>
+            <input type="url" id="custom-url" placeholder="https://example.com">
+        </div>
+
+        <div class="form-group">
+            <label>Версия сайта</label>
+            <div class="group-buttons" id="platform-select">
+                <div class="group-btn" data-val="web">WEB</div>
+                <div class="group-btn" data-val="mobile">Мобильный WEB</div>
+            </div>
+        </div>
+
+        <h3>Framework: Задача - Действие - Интерфейс - Метрика</h3>
+        <div class="form-group">
+            <label>Задача: Что хочет бизнес?</label>
+            <textarea id="s1-task" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Действие: Что должен сделать пользователь?</label>
+            <textarea id="s1-action" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Интерфейс: Как это реализовано на сайте?</label>
+            <textarea id="s1-interface" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Метрика: Как измерить результат?</label>
+            <textarea id="s1-metric" rows="3"></textarea>
+        </div>
+
+        <h3>Дополнительные вопросы</h3>
+        <div class="form-group">
+            <label>Какой главный CTA на первом экране? Насколько он очевиден?</label>
+            <textarea id="s1-q1" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Есть ли социальное доказательство (отзывы, рейтинги, кейсы)?</label>
+            <textarea id="s1-q2" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Сколько кликов нужно для целевого действия?</label>
+            <div class="inline-group">
+                <input type="number" id="s1-q3-num" min="1" max="20" style="width:80px">
+                <input type="text" id="s1-q3-comment" placeholder="Комментарий">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Решает ли сайт доп. задачи (HR, поддержка, имидж)?</label>
+            <textarea id="s1-q4" rows="2"></textarea>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn-primary" id="btn-next-1">Далее</button>
+        </div>
+    </div>
+
+    <!-- Step 2: Comparative Analysis -->
+    <div id="screen-step2" class="screen hidden">
+        <h2>Шаг 2: Сравнительный анализ</h2>
+        <p class="hint">Выберите 2 любых сайта и сравните их бизнес-задачи</p>
+
+        <div class="form-group">
+            <label>URL сайта 1</label>
+            <input type="url" id="s2-url1" placeholder="https://lamoda.ru">
+        </div>
+        <div class="form-group">
+            <label>URL сайта 2</label>
+            <input type="url" id="s2-url2" placeholder="https://alfabank.ru">
+        </div>
+
+        <h3>Сайт 1</h3>
+        <div class="form-group">
+            <label>Задача</label><textarea id="s2-s1-task" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Аудитория</label><textarea id="s2-s1-audience" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Главный CTA</label><textarea id="s2-s1-cta" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Контент</label><textarea id="s2-s1-content" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Метрика</label><textarea id="s2-s1-metric" rows="2"></textarea>
+        </div>
+
+        <h3>Сайт 2</h3>
+        <div class="form-group">
+            <label>Задача</label><textarea id="s2-s2-task" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Аудитория</label><textarea id="s2-s2-audience" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Главный CTA</label><textarea id="s2-s2-cta" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Контент</label><textarea id="s2-s2-content" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Метрика</label><textarea id="s2-s2-metric" rows="2"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>В чём главное отличие этих сайтов? Какой решает свою задачу лучше и почему?</label>
+            <textarea id="s2-why" rows="3"></textarea>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn-secondary" id="btn-back-2">Назад</button>
+            <button class="btn-primary" id="btn-next-2">Далее</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Audit & Recommendations -->
+    <div id="screen-step3" class="screen hidden">
+        <h2>Шаг 3: Аудит и рекомендации</h2>
+        <p class="hint">Вернитесь к сайту из Шага 1 и оцените его</p>
+
+        <h3>Чек-лист</h3>
+        <div id="checklist"></div>
+
+        <h3>Рекомендации</h3>
+        <div class="form-group">
+            <label>Что убрать - что мешает целевому действию?</label>
+            <textarea id="s3-remove" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Что добавить - чего не хватает для конверсии?</label>
+            <textarea id="s3-add" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Что изменить - что переделать для эффективности?</label>
+            <textarea id="s3-change" rows="3"></textarea>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn-secondary" id="btn-back-3">Назад</button>
+            <button class="btn-primary" id="btn-submit">Сдать практику</button>
+        </div>
+    </div>
+
+    <!-- Done -->
+    <div id="screen-done" class="screen hidden">
+        <div class="done-icon">&#10003;</div>
+        <h2>Практика сдана!</h2>
+        <p>Ваши ответы сохранены. Можете закрыть это окно.</p>
+        <button class="btn-secondary" id="btn-review" style="margin-top:16px">Посмотреть ответы</button>
+        <button class="btn-secondary" id="btn-reset" style="display:none"></button>
+    </div>
+
+    <!-- Read-only review -->
+    <div id="screen-review" class="screen hidden">
+        <h2>Ваши ответы (только чтение)</h2>
+        <div id="review-content"></div>
+        <button class="btn-secondary" id="btn-back-review" style="margin-top:16px">Назад</button>
+    </div>
+
+    <script src="js/web-app.js"></script>
+</body>
+</html>

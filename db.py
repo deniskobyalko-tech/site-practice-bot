@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS submissions (
     UNIQUE(student_id, step)
 );
 
+CREATE TABLE IF NOT EXISTS web_tokens (
+    token TEXT PRIMARY KEY,
+    student_id INTEGER NOT NULL REFERENCES students(id)
+);
+
 CREATE TABLE IF NOT EXISTS sites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     category TEXT NOT NULL,
@@ -104,6 +109,30 @@ async def get_student_progress(conn, student_id: int) -> dict:
     completed_steps = [s["step"] for s in subs]
     status = "submitted" if len(completed_steps) == 3 else f"step_{max(completed_steps)}" if completed_steps else "registered"
     return {"completed_steps": completed_steps, "status": status, "submissions": subs}
+
+
+# --- Web tokens ---
+
+async def create_web_token(conn, student_id: int) -> str:
+    import secrets
+    token = secrets.token_hex(32)
+    await conn.execute("INSERT INTO web_tokens (token, student_id) VALUES (?, ?)", (token, student_id))
+    await conn.commit()
+    return token
+
+
+async def get_student_by_web_token(conn, token: str):
+    cursor = await conn.execute(
+        "SELECT s.* FROM students s JOIN web_tokens wt ON s.id = wt.student_id WHERE wt.token = ?",
+        (token,),
+    )
+    row = await cursor.fetchone()
+    return dict(row) if row else None
+
+
+async def delete_web_tokens(conn, student_id: int):
+    await conn.execute("DELETE FROM web_tokens WHERE student_id = ?", (student_id,))
+    await conn.commit()
 
 
 # --- Sites ---
