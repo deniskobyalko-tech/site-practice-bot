@@ -163,6 +163,20 @@ async function loadSites() {
     }
 }
 
+// --- Platform select ---
+
+document.getElementById("platform-select").addEventListener("click", (e) => {
+    const btn = e.target.closest(".group-btn");
+    if (!btn) return;
+    document.querySelectorAll("#platform-select .group-btn").forEach((b) => b.classList.remove("selected"));
+    btn.classList.add("selected");
+});
+
+function getSelectedPlatform() {
+    const selected = document.querySelector("#platform-select .group-btn.selected");
+    return selected ? selected.dataset.val : null;
+}
+
 // --- Checklist ---
 
 function initChecklist() {
@@ -203,6 +217,7 @@ function collectStep1() {
 
     return {
         site,
+        platform: getSelectedPlatform(),
         task: document.getElementById("s1-task").value.trim(),
         action: document.getElementById("s1-action").value.trim(),
         interface: document.getElementById("s1-interface").value.trim(),
@@ -269,6 +284,13 @@ function restoreAnswers(step, answers) {
             document.getElementById("custom-url").value = answers.site;
             document.getElementById("custom-url-group").classList.remove("hidden");
         }
+        if (answers.platform) {
+            const btn = document.querySelector('#platform-select .group-btn[data-val="' + answers.platform + '"]');
+            if (btn) {
+                document.querySelectorAll("#platform-select .group-btn").forEach((b) => b.classList.remove("selected"));
+                btn.classList.add("selected");
+            }
+        }
         document.getElementById("s1-task").value = answers.task || "";
         document.getElementById("s1-action").value = answers.action || "";
         document.getElementById("s1-interface").value = answers.interface || "";
@@ -319,6 +341,7 @@ async function submitStep(step, answers) {
 document.getElementById("btn-next-1").addEventListener("click", async () => {
     const answers = collectStep1();
     if (!answers.site) return tg.showAlert("Выберите сайт");
+    if (!answers.platform) return tg.showAlert("Выберите версию сайта: WEB или Мобильный WEB");
     if (!answers.task) return tg.showAlert("Заполните поле Задача");
     const result = await submitStep(1, answers);
     if (result) showScreen("screen-step2");
