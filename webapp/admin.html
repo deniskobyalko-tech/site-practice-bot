@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ - Практика</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .filter-bar select {
+            width: auto;
+            flex: 1;
+        }
+        .filter-bar button {
+            padding: 10px 16px;
+            white-space: nowrap;
+        }
+        .student-row {
+            background: var(--secondary-bg);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .student-row:hover { opacity: 0.8; }
+        .student-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .student-name { font-weight: 600; }
+        .student-group { color: var(--hint); font-size: 13px; }
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-registered { background: #555; }
+        .status-step_1 { background: #e65100; }
+        .status-step_2 { background: #f9a825; color: #000; }
+        .status-step_3 { background: #2196f3; }
+        .status-submitted { background: #4caf50; }
+        .student-detail { margin-top: 8px; display: none; }
+        .student-detail.open { display: block; }
+        .detail-step { margin-bottom: 12px; }
+        .detail-step h4 { font-size: 14px; color: var(--link); margin-bottom: 4px; }
+        .detail-answer { font-size: 13px; color: var(--hint); margin: 2px 0; }
+        .detail-answer strong { color: var(--text); }
+        .empty-state { text-align: center; color: var(--hint); padding: 40px 0; }
+        .count-badge { color: var(--hint); font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <h1>Результаты</h1>
+        <span class="count-badge" id="count"></span>
+    </div>
+
+    <div class="filter-bar">
+        <select id="group-filter">
+            <option value="">Все группы</option>
+            <option value="МДК01">МДК01</option>
+            <option value="МДК02">МДК02</option>
+            <option value="МДК03">МДК03</option>
+            <option value="МДК04">МДК04</option>
+        </select>
+        <button class="btn-secondary" id="btn-export">CSV</button>
+    </div>
+
+    <div id="students-list"></div>
+    <div id="empty-state" class="empty-state hidden">Пока нет студентов</div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
