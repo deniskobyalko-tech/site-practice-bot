@@ -1,13 +1,13 @@
 // Web version — no Telegram dependency
-
 const API_BASE = "/site-practice";
-let AUTH_HEADER = {};
+var AUTH_HEADER = {};
+var savedToken = localStorage.getItem("practice_token");
+if (savedToken) AUTH_HEADER = { Authorization: "Bearer " + savedToken };
 
-// Load token from localStorage
-const savedToken = localStorage.getItem("practice_token");
-if (savedToken) {
-    AUTH_HEADER = { Authorization: "Bearer " + savedToken };
-}
+var tg = {
+    showAlert: function (msg) { alert(msg); },
+    showConfirm: function (msg, cb) { cb(confirm(msg)); },
+};
 
 const CHECKLIST_ITEMS = [
     "CTA виден без скролла",
@@ -21,11 +21,7 @@ const CHECKLIST_ITEMS = [
 const GROUPS = ["МДК01", "МДК02", "МДК03", "МДК04"];
 
 let studentData = null;
-
-// --- Polyfill for tg.showAlert / tg.showConfirm ---
-
-function showAlert(msg) { alert(msg); }
-function showConfirm(msg, cb) { cb(confirm(msg)); }
+let chosenSite = "";
 
 // --- API helpers ---
 
@@ -48,12 +44,19 @@ async function api(method, path, body) {
 function showScreen(id) {
     document.querySelectorAll(".screen").forEach((s) => s.classList.add("hidden"));
     document.getElementById(id).classList.remove("hidden");
+    window.scrollTo(0, 0);
 
     const bar = document.getElementById("progress-bar");
-    if (id.startsWith("screen-step")) {
+    // step1a/1b/1c all show step 1 active
+    if (id.startsWith("screen-step1")) {
         bar.classList.remove("hidden");
-        const step = parseInt(id.replace("screen-step", ""));
-        updateProgressBar(step);
+        updateProgressBar(1);
+    } else if (id === "screen-step2") {
+        bar.classList.remove("hidden");
+        updateProgressBar(2);
+    } else if (id === "screen-step3" || id === "screen-summary") {
+        bar.classList.remove("hidden");
+        updateProgressBar(3);
     } else {
         bar.classList.add("hidden");
     }
@@ -68,64 +71,81 @@ function updateProgressBar(activeStep) {
     });
 }
 
+// --- Site reminder ---
+
+function getSiteName() {
+    var select = document.getElementById("site-select");
+    if (select.value === "__custom__") return document.getElementById("custom-url").value.trim();
+    if (select.value) return select.options[select.selectedIndex].textContent + " (" + select.value + ")";
+    return "";
+}
+
+function updateReminders() {
+    chosenSite = getSiteName();
+    var platform = getSelectedPlatform();
+    var platformLabel = platform === "web" ? "WEB" : platform === "mobile" ? "Мобильный WEB" : "";
+    var text = chosenSite;
+    if (platformLabel) text += " — " + platformLabel;
+    document.querySelectorAll(".site-reminder").forEach(function (el) {
+        el.textContent = text || "";
+        el.style.display = text ? "block" : "none";
+    });
+}
+
 // --- Registration ---
 
 function initRegistration() {
-    const container = document.getElementById("group-select");
+    var container = document.getElementById("group-select");
     container.innerHTML = "";
-    let selectedGroup = null;
+    var selectedGroup = null;
 
-    GROUPS.forEach((g) => {
-        const btn = document.createElement("div");
+    GROUPS.forEach(function (g) {
+        var btn = document.createElement("div");
         btn.className = "group-btn";
         btn.textContent = g;
-        btn.addEventListener("click", () => {
-            container.querySelectorAll(".group-btn").forEach((b) => b.classList.remove("selected"));
+        btn.addEventListener("click", function () {
+            container.querySelectorAll(".group-btn").forEach(function (b) { b.classList.remove("selected"); });
             btn.classList.add("selected");
             selectedGroup = g;
         });
         container.appendChild(btn);
     });
 
-    document.getElementById("btn-register").addEventListener("click", async () => {
-        const name = document.getElementById("reg-name").value.trim();
-        if (!selectedGroup) return showAlert("Выберите группу");
-        if (!name) return showAlert("Введите ФИО");
+    document.getElementById("btn-register").addEventListener("click", async function () {
+        var name = document.getElementById("reg-name").value.trim();
+        if (!selectedGroup) return tg.showAlert("Выберите группу");
+        if (!name) return tg.showAlert("Введите ФИО");
 
         try {
-            const result = await apiNoAuth("POST", "/api/web-register", { name, group: selectedGroup });
+            var opts = {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name, group: selectedGroup }),
+            };
+            var resp = await fetch(API_BASE + "/api/web-register", opts);
+            if (!resp.ok) throw new Error((await resp.json().catch(function(){return {};})).detail || resp.statusText);
+            var result = await resp.json();
             localStorage.setItem("practice_token", result.token);
             AUTH_HEADER = { Authorization: "Bearer " + result.token };
             await loadStudent();
         } catch (e) {
-            showAlert("Ошибка: " + e.message);
+            tg.showAlert("Ошибка: " + e.message);
         }
     });
-}
-
-async function apiNoAuth(method, path, body) {
-    const opts = {
-        method,
-        headers: { "Content-Type": "application/json" },
-    };
-    if (body) opts.body = JSON.stringify(body);
-    const resp = await fetch(API_BASE + path, opts);
-    if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.detail || resp.statusText);
-    }
-    return resp.json();
 }
 
 // --- Load student & resume ---
 
 async function loadStudent() {
     try {
-        const data = await api("GET", "/api/student");
+        var data = await api("GET", "/api/student");
         studentData = data;
-        const completed = data.progress.completed_steps;
+        var completed = data.progress.completed_steps;
 
         if (data.progress.status === "submitted") {
+            if (data.is_admin) {
+                document.getElementById("btn-reset").style.display = "block";
+            }
             showScreen("screen-done");
             return;
         }
@@ -133,13 +153,22 @@ async function loadStudent() {
         await loadSites();
         initChecklist();
 
-        for (const sub of data.progress.submissions) {
+        for (var i = 0; i < data.progress.submissions.length; i++) {
+            var sub = data.progress.submissions[i];
             restoreAnswers(sub.step, JSON.parse(sub.answers));
         }
 
-        const nextStep = completed.length === 0 ? 1 : Math.max(...completed) + 1;
-        showScreen("screen-step" + Math.min(nextStep, 3));
-    } catch {
+        updateReminders();
+
+        if (completed.length === 0) {
+            showScreen("screen-step1a");
+        } else {
+            var maxStep = Math.max.apply(null, completed);
+            if (maxStep >= 3) showScreen("screen-step3");
+            else if (maxStep === 2) showScreen("screen-step3");
+            else if (maxStep === 1) showScreen("screen-step2");
+        }
+    } catch (e) {
         showScreen("screen-register");
     }
 }
@@ -148,21 +177,22 @@ async function loadStudent() {
 
 async function loadSites() {
     try {
-        const sites = await api("GET", "/api/sites");
-        const select = document.getElementById("site-select");
+        var sites = await api("GET", "/api/sites");
+        var select = document.getElementById("site-select");
         select.innerHTML = '<option value="">— Выберите сайт —</option>';
 
-        const categories = {};
-        sites.forEach((s) => {
+        var categories = {};
+        sites.forEach(function (s) {
             if (!categories[s.category]) categories[s.category] = [];
             categories[s.category].push(s);
         });
 
-        Object.entries(categories).forEach(([cat, items]) => {
-            const group = document.createElement("optgroup");
+        Object.entries(categories).forEach(function (entry) {
+            var cat = entry[0], items = entry[1];
+            var group = document.createElement("optgroup");
             group.label = cat;
-            items.forEach((s) => {
-                const opt = document.createElement("option");
+            items.forEach(function (s) {
+                var opt = document.createElement("option");
                 opt.value = s.url;
                 opt.textContent = s.name;
                 group.appendChild(opt);
@@ -170,13 +200,13 @@ async function loadSites() {
             select.appendChild(group);
         });
 
-        const customOpt = document.createElement("option");
+        var customOpt = document.createElement("option");
         customOpt.value = "__custom__";
         customOpt.textContent = "Свой сайт...";
         select.appendChild(customOpt);
 
-        select.addEventListener("change", () => {
-            const customGroup = document.getElementById("custom-url-group");
+        select.addEventListener("change", function () {
+            var customGroup = document.getElementById("custom-url-group");
             if (select.value === "__custom__") customGroup.classList.remove("hidden");
             else customGroup.classList.add("hidden");
         });
@@ -187,26 +217,47 @@ async function loadSites() {
 
 // --- Platform select ---
 
-document.getElementById("platform-select").addEventListener("click", (e) => {
-    const btn = e.target.closest(".group-btn");
+document.getElementById("platform-select").addEventListener("click", function (e) {
+    var btn = e.target.closest(".group-btn");
     if (!btn) return;
-    document.querySelectorAll("#platform-select .group-btn").forEach((b) => b.classList.remove("selected"));
+    document.querySelectorAll("#platform-select .group-btn").forEach(function (b) { b.classList.remove("selected"); });
     btn.classList.add("selected");
 });
 
 function getSelectedPlatform() {
-    const selected = document.querySelector("#platform-select .group-btn.selected");
+    var selected = document.querySelector("#platform-select .group-btn.selected");
     return selected ? selected.dataset.val : null;
 }
+
+// --- Step 2: dynamic site titles ---
+
+function updateStep2Titles() {
+    var url1 = document.getElementById("s2-url1").value.trim();
+    var url2 = document.getElementById("s2-url2").value.trim();
+    document.getElementById("s2-title-1").textContent = url1 ? urlToName(url1) : "Сайт 1";
+    document.getElementById("s2-title-2").textContent = url2 ? urlToName(url2) : "Сайт 2";
+}
+
+function urlToName(url) {
+    try {
+        var hostname = new URL(url).hostname.replace("www.", "");
+        return hostname;
+    } catch (e) {
+        return url;
+    }
+}
+
+document.getElementById("s2-url1").addEventListener("input", updateStep2Titles);
+document.getElementById("s2-url2").addEventListener("input", updateStep2Titles);
 
 // --- Checklist ---
 
 function initChecklist() {
-    const container = document.getElementById("checklist");
+    var container = document.getElementById("checklist");
     container.innerHTML = "";
 
-    CHECKLIST_ITEMS.forEach((text, i) => {
-        const div = document.createElement("div");
+    CHECKLIST_ITEMS.forEach(function (text, i) {
+        var div = document.createElement("div");
         div.className = "checklist-item";
         div.innerHTML =
             '<label>' + text + '</label>' +
@@ -218,11 +269,11 @@ function initChecklist() {
         container.appendChild(div);
     });
 
-    container.addEventListener("click", (e) => {
+    container.addEventListener("click", function (e) {
         if (!e.target.classList.contains("toggle-btn")) return;
-        const idx = e.target.dataset.idx;
-        const val = e.target.dataset.val;
-        container.querySelectorAll('.toggle-btn[data-idx="' + idx + '"]').forEach((b) => {
+        var idx = e.target.dataset.idx;
+        var val = e.target.dataset.val;
+        container.querySelectorAll('.toggle-btn[data-idx="' + idx + '"]').forEach(function (b) {
             b.classList.remove("selected-yes", "selected-no");
         });
         e.target.classList.add(val === "yes" ? "selected-yes" : "selected-no");
@@ -232,13 +283,13 @@ function initChecklist() {
 // --- Collect answers ---
 
 function collectStep1() {
-    const select = document.getElementById("site-select");
-    const site = select.value === "__custom__"
+    var select = document.getElementById("site-select");
+    var site = select.value === "__custom__"
         ? document.getElementById("custom-url").value.trim()
         : select.value;
 
     return {
-        site,
+        site: site,
         platform: getSelectedPlatform(),
         task: document.getElementById("s1-task").value.trim(),
         action: document.getElementById("s1-action").value.trim(),
@@ -275,9 +326,9 @@ function collectStep2() {
 }
 
 function collectStep3() {
-    const checklist = CHECKLIST_ITEMS.map((text, i) => {
-        const yesBtn = document.querySelector('.toggle-btn[data-idx="' + i + '"].selected-yes');
-        const noBtn = document.querySelector('.toggle-btn[data-idx="' + i + '"].selected-no');
+    var checklist = CHECKLIST_ITEMS.map(function (text, i) {
+        var yesBtn = document.querySelector('.toggle-btn[data-idx="' + i + '"].selected-yes');
+        var noBtn = document.querySelector('.toggle-btn[data-idx="' + i + '"].selected-no');
         return {
             question: text,
             answer: yesBtn ? "yes" : noBtn ? "no" : null,
@@ -286,7 +337,7 @@ function collectStep3() {
     });
 
     return {
-        checklist,
+        checklist: checklist,
         remove: document.getElementById("s3-remove").value.trim(),
         add: document.getElementById("s3-add").value.trim(),
         change: document.getElementById("s3-change").value.trim(),
@@ -297,8 +348,8 @@ function collectStep3() {
 
 function restoreAnswers(step, answers) {
     if (step === 1) {
-        const select = document.getElementById("site-select");
-        const opts = Array.from(select.options).map((o) => o.value);
+        var select = document.getElementById("site-select");
+        var opts = Array.from(select.options).map(function (o) { return o.value; });
         if (opts.includes(answers.site)) {
             select.value = answers.site;
         } else if (answers.site) {
@@ -307,9 +358,9 @@ function restoreAnswers(step, answers) {
             document.getElementById("custom-url-group").classList.remove("hidden");
         }
         if (answers.platform) {
-            const btn = document.querySelector('#platform-select .group-btn[data-val="' + answers.platform + '"]');
+            var btn = document.querySelector('#platform-select .group-btn[data-val="' + answers.platform + '"]');
             if (btn) {
-                document.querySelectorAll("#platform-select .group-btn").forEach((b) => b.classList.remove("selected"));
+                document.querySelectorAll("#platform-select .group-btn").forEach(function (b) { b.classList.remove("selected"); });
                 btn.classList.add("selected");
             }
         }
@@ -325,16 +376,17 @@ function restoreAnswers(step, answers) {
     } else if (step === 2) {
         document.getElementById("s2-url1").value = answers.url1 || "";
         document.getElementById("s2-url2").value = answers.url2 || "";
-        ["task", "audience", "cta", "content", "metric"].forEach((f) => {
+        ["task", "audience", "cta", "content", "metric"].forEach(function (f) {
             document.getElementById("s2-s1-" + f).value = (answers.site1 && answers.site1[f]) || "";
             document.getElementById("s2-s2-" + f).value = (answers.site2 && answers.site2[f]) || "";
         });
         document.getElementById("s2-why").value = answers.why_split || "";
+        updateStep2Titles();
     } else if (step === 3) {
         if (answers.checklist) {
-            answers.checklist.forEach((item, i) => {
+            answers.checklist.forEach(function (item, i) {
                 if (item.answer) {
-                    const btn = document.querySelector(
+                    var btn = document.querySelector(
                         '.toggle-btn[data-idx="' + i + '"][data-val="' + item.answer + '"]'
                     );
                     if (btn) btn.classList.add(item.answer === "yes" ? "selected-yes" : "selected-no");
@@ -348,78 +400,195 @@ function restoreAnswers(step, answers) {
     }
 }
 
+// --- Count filled fields ---
+
+function countFilled(obj) {
+    var total = 0, filled = 0;
+    function walk(val) {
+        if (val === null || val === undefined) return;
+        if (Array.isArray(val)) {
+            val.forEach(function (item) {
+                if (item && typeof item === "object" && item.question) {
+                    total++; if (item.answer) filled++;
+                    total++; if (item.comment) filled++;
+                } else { walk(item); }
+            });
+        } else if (typeof val === "object") {
+            Object.values(val).forEach(walk);
+        } else {
+            total++;
+            if (String(val).trim() !== "") filled++;
+        }
+    }
+    walk(obj);
+    return { total: total, filled: filled };
+}
+
+// --- Summary screen ---
+
+function showSummary() {
+    var s1 = collectStep1();
+    var s2 = collectStep2();
+    var s3 = collectStep3();
+
+    var c1 = countFilled(s1);
+    var c2 = countFilled(s2);
+    var c3 = countFilled(s3);
+    var totalFilled = c1.filled + c2.filled + c3.filled;
+    var totalAll = c1.total + c2.total + c3.total;
+
+    var html = '';
+    html += '<div class="summary-stat ' + (totalFilled === totalAll ? "ok" : "warn") + '">';
+    html += '<span>Заполнено полей</span>';
+    html += '<span class="count">' + totalFilled + ' / ' + totalAll + '</span>';
+    html += '</div>';
+
+    html += '<div class="summary-section"><h4>Шаг 1: Анализ сайта</h4>';
+    html += '<div class="summary-field"><strong>Сайт:</strong> ' + esc(s1.site || "—") + '</div>';
+    html += '<div class="summary-field"><strong>Платформа:</strong> ' + esc(s1.platform === "web" ? "WEB" : s1.platform === "mobile" ? "Мобильный WEB" : "—") + '</div>';
+    html += '<div class="summary-field"><strong>Задача:</strong> ' + esc(s1.task || "—") + '</div>';
+    html += '<div class="summary-field"><strong>Действие:</strong> ' + esc(s1.action || "—") + '</div>';
+    html += '<div class="summary-field"><strong>Интерфейс:</strong> ' + esc(s1.interface || "—") + '</div>';
+    html += '<div class="summary-field"><strong>Метрика:</strong> ' + esc(s1.metric || "—") + '</div>';
+    html += '</div>';
+
+    html += '<div class="summary-section"><h4>Шаг 2: Сравнение</h4>';
+    html += '<div class="summary-field"><strong>Сайт 1:</strong> ' + esc(s2.url1 || "—") + '</div>';
+    html += '<div class="summary-field"><strong>Сайт 2:</strong> ' + esc(s2.url2 || "—") + '</div>';
+    html += '<div class="summary-field"><strong>Вывод:</strong> ' + esc(s2.why_split || "—") + '</div>';
+    html += '</div>';
+
+    html += '<div class="summary-section"><h4>Шаг 3: Аудит</h4>';
+    var answered = s3.checklist.filter(function (c) { return c.answer; }).length;
+    html += '<div class="summary-field"><strong>Чек-лист:</strong> ' + answered + ' / ' + s3.checklist.length + ' отвечено</div>';
+    html += '<div class="summary-field"><strong>Убрать:</strong> ' + esc(s3.remove || "—") + '</div>';
+    html += '<div class="summary-field"><strong>Добавить:</strong> ' + esc(s3.add || "—") + '</div>';
+    html += '<div class="summary-field"><strong>Изменить:</strong> ' + esc(s3.change || "—") + '</div>';
+    html += '</div>';
+
+    document.getElementById("summary-content").innerHTML = html;
+    showScreen("screen-summary");
+}
+
+function esc(str) {
+    var div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 // --- Navigation ---
 
 async function submitStep(step, answers) {
     try {
-        const result = await api("POST", "/api/submit/" + step, answers);
-        return result;
+        return await api("POST", "/api/submit/" + step, answers);
     } catch (e) {
-        showAlert("Ошибка сохранения: " + e.message);
+        tg.showAlert("Ошибка сохранения: " + e.message);
         return null;
     }
 }
 
-document.getElementById("btn-next-1").addEventListener("click", async () => {
-    const answers = collectStep1();
-    if (!answers.site) return showAlert("Выберите сайт");
-    if (!answers.platform) return showAlert("Выберите версию сайта: WEB или Мобильный WEB");
-    if (!answers.task) return showAlert("Заполните поле Задача");
-    const result = await submitStep(1, answers);
+// Step 1a -> 1b
+document.getElementById("btn-next-1a").addEventListener("click", function () {
+    var select = document.getElementById("site-select");
+    var site = select.value === "__custom__" ? document.getElementById("custom-url").value.trim() : select.value;
+    if (!site) return tg.showAlert("Выберите сайт");
+    if (!getSelectedPlatform()) return tg.showAlert("Выберите версию: WEB или Мобильный WEB");
+    updateReminders();
+    showScreen("screen-step1b");
+});
+
+// Step 1b -> 1c
+document.getElementById("btn-back-1b").addEventListener("click", function () { showScreen("screen-step1a"); });
+document.getElementById("btn-next-1b").addEventListener("click", function () {
+    var t = document.getElementById("s1-task").value.trim();
+    var a = document.getElementById("s1-action").value.trim();
+    var i = document.getElementById("s1-interface").value.trim();
+    var m = document.getElementById("s1-metric").value.trim();
+    if (!t) return tg.showAlert("Заполните поле Задача");
+    if (!a) return tg.showAlert("Заполните поле Действие");
+    if (!i) return tg.showAlert("Заполните поле Интерфейс");
+    if (!m) return tg.showAlert("Заполните поле Метрика");
+    showScreen("screen-step1c");
+});
+
+// Step 1c -> Step 2
+document.getElementById("btn-back-1c").addEventListener("click", function () { showScreen("screen-step1b"); });
+document.getElementById("btn-next-1c").addEventListener("click", async function () {
+    var answers = collectStep1();
+    if (!answers.q1_cta) return tg.showAlert("Заполните вопрос про CTA");
+    if (!answers.q2_social_proof) return tg.showAlert("Заполните вопрос про социальное доказательство");
+    if (!answers.q3_clicks) return tg.showAlert("Укажите количество кликов");
+    if (!answers.q4_additional) return tg.showAlert("Заполните вопрос про доп. задачи");
+    var result = await submitStep(1, answers);
     if (result) showScreen("screen-step2");
 });
 
-document.getElementById("btn-back-2").addEventListener("click", () => showScreen("screen-step1"));
-
-document.getElementById("btn-next-2").addEventListener("click", async () => {
-    const answers = collectStep2();
-    if (!answers.url1 || !answers.url2) return showAlert("Введите оба URL");
-    const result = await submitStep(2, answers);
-    if (result) showScreen("screen-step3");
+// Step 2 -> Step 3
+document.getElementById("btn-back-2").addEventListener("click", function () { showScreen("screen-step1c"); });
+document.getElementById("btn-next-2").addEventListener("click", async function () {
+    var answers = collectStep2();
+    if (!answers.url1 || !answers.url2) return tg.showAlert("Введите оба URL");
+    if (!answers.site1.task) return tg.showAlert("Заполните задачу для Сайта 1");
+    if (!answers.site2.task) return tg.showAlert("Заполните задачу для Сайта 2");
+    if (!answers.why_split) return tg.showAlert("Заполните вывод о различиях");
+    var result = await submitStep(2, answers);
+    if (result) {
+        updateReminders();
+        showScreen("screen-step3");
+    }
 });
 
-document.getElementById("btn-back-3").addEventListener("click", () => showScreen("screen-step2"));
-
-document.getElementById("btn-submit").addEventListener("click", async () => {
-    const answers = collectStep3();
-    const unanswered = answers.checklist.filter((c) => c.answer === null);
-    if (unanswered.length > 0) return showAlert("Ответьте на все пункты чек-листа");
-
-    showConfirm("Сдать практику? После сдачи редактирование будет недоступно.", async (ok) => {
-        if (!ok) return;
-        const result = await submitStep(3, answers);
-        if (result) {
-            showScreen("screen-done");
-        }
-    });
+// Step 3 -> Summary
+document.getElementById("btn-back-3").addEventListener("click", function () { showScreen("screen-step2"); });
+document.getElementById("btn-submit").addEventListener("click", function () {
+    var answers = collectStep3();
+    var unanswered = answers.checklist.filter(function (c) { return c.answer === null; });
+    if (unanswered.length > 0) return tg.showAlert("Ответьте на все пункты чек-листа");
+    if (!answers.remove) return tg.showAlert("Заполните рекомендацию Что убрать");
+    if (!answers.add) return tg.showAlert("Заполните рекомендацию Что добавить");
+    if (!answers.change) return tg.showAlert("Заполните рекомендацию Что изменить");
+    showSummary();
 });
 
-// --- Review mode (read-only) ---
+// Summary -> submit
+document.getElementById("btn-back-summary").addEventListener("click", function () { showScreen("screen-step3"); });
+document.getElementById("btn-confirm-submit").addEventListener("click", async function () {
+    var answers = collectStep3();
+    var result = await submitStep(3, answers);
+    if (result) {
+        // no bot notification in web version
+        showScreen("screen-done");
+    }
+});
 
-document.getElementById("btn-review").addEventListener("click", async () => {
+// --- Review ---
+
+document.getElementById("btn-review").addEventListener("click", async function () {
     try {
-        const data = await api("GET", "/api/student");
-        const container = document.getElementById("review-content");
+        var data = await api("GET", "/api/student");
+        var container = document.getElementById("review-content");
         container.innerHTML = "";
-        const stepTitles = { 1: "Анализ сайта", 2: "Сравнительный анализ", 3: "Аудит и рекомендации" };
-        for (const sub of data.progress.submissions) {
-            const answers = JSON.parse(sub.answers);
-            const div = document.createElement("div");
+        var stepTitles = { 1: "Анализ сайта", 2: "Сравнительный анализ", 3: "Аудит и рекомендации" };
+        for (var idx = 0; idx < data.progress.submissions.length; idx++) {
+            var sub = data.progress.submissions[idx];
+            var answers = JSON.parse(sub.answers);
+            var div = document.createElement("div");
             div.style.marginBottom = "16px";
-            let html = '<h3>Шаг ' + sub.step + ': ' + stepTitles[sub.step] + '</h3>';
-            Object.entries(answers).forEach(([k, v]) => {
+            var html = '<h3>Шаг ' + sub.step + ': ' + stepTitles[sub.step] + '</h3>';
+            Object.entries(answers).forEach(function (pair) {
+                var k = pair[0], v = pair[1];
                 if (v && typeof v === "string") {
-                    html += '<div class="hint" style="margin:4px 0"><strong>' + k + ':</strong> ' + v + '</div>';
+                    html += '<div class="hint" style="margin:4px 0"><strong>' + k + ':</strong> ' + esc(v) + '</div>';
                 } else if (Array.isArray(v)) {
-                    v.forEach((item) => {
+                    v.forEach(function (item) {
                         if (item.question) {
-                            const icon = item.answer === "yes" ? "+" : item.answer === "no" ? "-" : "?";
-                            html += '<div class="hint" style="margin:4px 0"><strong>[' + icon + '] ' + item.question + ':</strong> ' + (item.comment || "") + '</div>';
+                            var icon = item.answer === "yes" ? "+" : item.answer === "no" ? "-" : "?";
+                            html += '<div class="hint" style="margin:4px 0"><strong>[' + icon + '] ' + esc(item.question) + ':</strong> ' + esc(item.comment || "") + '</div>';
                         }
                     });
                 } else if (v && typeof v === "object") {
-                    Object.entries(v).forEach(([k2, v2]) => {
-                        if (v2) html += '<div class="hint" style="margin:4px 0"><strong>' + k + '.' + k2 + ':</strong> ' + v2 + '</div>';
+                    Object.entries(v).forEach(function (p) {
+                        if (p[1]) html += '<div class="hint" style="margin:4px 0"><strong>' + k + '.' + p[0] + ':</strong> ' + esc(p[1]) + '</div>';
                     });
                 }
             });
@@ -428,29 +597,38 @@ document.getElementById("btn-review").addEventListener("click", async () => {
         }
         showScreen("screen-review");
     } catch (e) {
-        showAlert("Ошибка: " + e.message);
+        tg.showAlert("Ошибка: " + e.message);
     }
 });
 
-document.getElementById("btn-back-review").addEventListener("click", () => showScreen("screen-done"));
+document.getElementById("btn-back-review").addEventListener("click", function () { showScreen("screen-done"); });
 
-// btn-reset is hidden in web version
-document.getElementById("btn-reset").addEventListener("click", () => {});
+document.getElementById("btn-reset").addEventListener("click", function () {
+    tg.showConfirm("Обнулить все ответы и пройти заново?", async function (ok) {
+        if (!ok) return;
+        try {
+            await api("POST", "/api/reset", {});
+            window.location.reload();
+        } catch (e) {
+            tg.showAlert("Ошибка: " + e.message);
+        }
+    });
+});
 
 // --- Auto-save on blur ---
 
-let saveTimer = null;
+var saveTimer = null;
 function setupAutoSave() {
-    document.querySelectorAll("textarea, input").forEach((el) => {
-        el.addEventListener("blur", () => {
+    document.querySelectorAll("textarea, input").forEach(function (el) {
+        el.addEventListener("blur", function () {
             clearTimeout(saveTimer);
-            saveTimer = setTimeout(async () => {
-                const screen = document.querySelector(".screen:not(.hidden)");
+            saveTimer = setTimeout(async function () {
+                var screen = document.querySelector(".screen:not(.hidden)");
                 if (!screen) return;
-                const id = screen.id;
-                if (id === "screen-step1") await submitStep(1, collectStep1()).catch(() => {});
-                else if (id === "screen-step2") await submitStep(2, collectStep2()).catch(() => {});
-                else if (id === "screen-step3") await submitStep(3, collectStep3()).catch(() => {});
+                var id = screen.id;
+                if (id.startsWith("screen-step1")) await submitStep(1, collectStep1()).catch(function () {});
+                else if (id === "screen-step2") await submitStep(2, collectStep2()).catch(function () {});
+                else if (id === "screen-step3") await submitStep(3, collectStep3()).catch(function () {});
             }, 500);
         });
     });
@@ -459,4 +637,4 @@ function setupAutoSave() {
 // --- Init ---
 
 initRegistration();
-loadStudent().then(() => setupAutoSave());
+loadStudent().then(function () { setupAutoSave(); });

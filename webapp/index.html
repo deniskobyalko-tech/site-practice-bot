@@ -29,12 +29,13 @@
         <div class="step-indicator" data-step="3"><span>3</span> Аудит</div>
     </div>
 
-    <!-- Step 1: Site Analysis -->
-    <div id="screen-step1" class="screen hidden">
-        <h2>Шаг 1: Анализ сайта</h2>
+    <!-- Step 1a: Choose site -->
+    <div id="screen-step1a" class="screen hidden">
+        <h2>Шаг 1: Выберите сайт</h2>
+        <p class="hint">Выберите сайт для анализа и укажите, какую версию будете изучать</p>
 
         <div class="form-group">
-            <label>Выберите сайт</label>
+            <label>Сайт</label>
             <select id="site-select"><option value="">Загрузка...</option></select>
         </div>
         <div class="form-group hidden" id="custom-url-group">
@@ -50,47 +51,67 @@
             </div>
         </div>
 
-        <h3>Framework: Задача - Действие - Интерфейс - Метрика</h3>
+        <div class="nav-buttons">
+            <button class="btn-primary" id="btn-next-1a">Далее</button>
+        </div>
+    </div>
+
+    <!-- Step 1b: Framework -->
+    <div id="screen-step1b" class="screen hidden">
+        <h2>Шаг 1: Framework</h2>
+        <div class="site-reminder" id="reminder-1b"></div>
+
         <div class="form-group">
             <label>Задача: Что хочет бизнес?</label>
-            <textarea id="s1-task" rows="3"></textarea>
+            <textarea id="s1-task" rows="3" placeholder="Например: увеличить онлайн-продажи через корзину"></textarea>
         </div>
         <div class="form-group">
             <label>Действие: Что должен сделать пользователь?</label>
-            <textarea id="s1-action" rows="3"></textarea>
+            <textarea id="s1-action" rows="3" placeholder="Например: добавить товар в корзину и оформить заказ"></textarea>
         </div>
         <div class="form-group">
             <label>Интерфейс: Как это реализовано на сайте?</label>
-            <textarea id="s1-interface" rows="3"></textarea>
+            <textarea id="s1-interface" rows="3" placeholder="Например: карточка товара с кнопкой В корзину, фильтры, поиск"></textarea>
         </div>
         <div class="form-group">
             <label>Метрика: Как измерить результат?</label>
-            <textarea id="s1-metric" rows="3"></textarea>
+            <textarea id="s1-metric" rows="3" placeholder="Например: конверсия в покупку (CR), средний чек, ДРР"></textarea>
         </div>
 
-        <h3>Дополнительные вопросы</h3>
+        <div class="nav-buttons">
+            <button class="btn-secondary" id="btn-back-1b">Назад</button>
+            <button class="btn-primary" id="btn-next-1b">Далее</button>
+        </div>
+    </div>
+
+    <!-- Step 1c: Additional questions -->
+    <div id="screen-step1c" class="screen hidden">
+        <h2>Шаг 1: Дополнительные вопросы</h2>
+        <div class="site-reminder" id="reminder-1c"></div>
+
         <div class="form-group">
             <label>Какой главный CTA на первом экране? Насколько он очевиден?</label>
-            <textarea id="s1-q1" rows="2"></textarea>
+            <textarea id="s1-q1" rows="2" placeholder="Например: кнопка Купить, яркая, в центре экрана"></textarea>
         </div>
         <div class="form-group">
             <label>Есть ли социальное доказательство (отзывы, рейтинги, кейсы)?</label>
-            <textarea id="s1-q2" rows="2"></textarea>
+            <textarea id="s1-q2" rows="2" placeholder="Например: рейтинг 4.8, 500 отзывов под товаром"></textarea>
         </div>
         <div class="form-group">
             <label>Сколько кликов нужно для целевого действия?</label>
             <div class="inline-group">
-                <input type="number" id="s1-q3-num" min="1" max="20" style="width:80px">
+                <input type="number" id="s1-q3-num" min="1" max="20" style="width:80px" placeholder="3">
                 <input type="text" id="s1-q3-comment" placeholder="Комментарий">
             </div>
         </div>
         <div class="form-group">
             <label>Решает ли сайт доп. задачи (HR, поддержка, имидж)?</label>
-            <textarea id="s1-q4" rows="2"></textarea>
+            <textarea id="s1-q4" rows="2" placeholder="Например: есть раздел Вакансии и Блог компании"></textarea>
         </div>
 
         <div class="nav-buttons">
-            <button class="btn-primary" id="btn-next-1">Далее</button>
+            <button class="btn-secondary" id="btn-back-1c">Назад</button>
+            <button class="btn-primary" id="btn-next-1c">Сохранить и далее</button>
         </div>
     </div>
 
@@ -108,7 +129,7 @@
             <input type="url" id="s2-url2" placeholder="https://alfabank.ru">
         </div>
 
-        <h3>Сайт 1</h3>
+        <h3 id="s2-title-1">Сайт 1</h3>
         <div class="form-group">
             <label>Задача</label><textarea id="s2-s1-task" rows="2"></textarea>
         </div>
@@ -125,7 +146,7 @@
             <label>Метрика</label><textarea id="s2-s1-metric" rows="2"></textarea>
         </div>
 
-        <h3>Сайт 2</h3>
+        <h3 id="s2-title-2">Сайт 2</h3>
         <div class="form-group">
             <label>Задача</label><textarea id="s2-s2-task" rows="2"></textarea>
         </div>
@@ -156,7 +177,7 @@
     <!-- Step 3: Audit & Recommendations -->
     <div id="screen-step3" class="screen hidden">
         <h2>Шаг 3: Аудит и рекомендации</h2>
-        <p class="hint">Вернитесь к сайту из Шага 1 и оцените его</p>
+        <div class="site-reminder" id="reminder-3"></div>
 
         <h3>Чек-лист</h3>
         <div id="checklist"></div>
@@ -178,6 +199,16 @@
         <div class="nav-buttons">
             <button class="btn-secondary" id="btn-back-3">Назад</button>
             <button class="btn-primary" id="btn-submit">Сдать практику</button>
+        </div>
+    </div>
+
+    <!-- Summary before submit -->
+    <div id="screen-summary" class="screen hidden">
+        <h2>Проверьте перед сдачей</h2>
+        <div id="summary-content"></div>
+        <div class="nav-buttons" style="margin-top:16px">
+            <button class="btn-secondary" id="btn-back-summary">Назад</button>
+            <button class="btn-primary" id="btn-confirm-submit">Подтвердить сдачу</button>
         </div>
     </div>
 
