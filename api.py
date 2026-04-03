@@ -126,6 +126,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         if not student:
             raise HTTPException(404, "Student not found")
         await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student["id"],))
+        await conn.execute("DELETE FROM students WHERE id = ?", (student["id"],))
         await conn.commit()
         return {"ok": True}
 
