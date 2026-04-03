@@ -1,0 +1,16 @@
+[Unit]
+Description=Site Practice Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/site-practice-bot
+ExecStart=/root/site-practice-bot/venv/bin/python main.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/root/site-practice-bot/.env
+
+[Install]
+WantedBy=multi-user.target
