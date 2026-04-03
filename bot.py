@@ -6,20 +6,19 @@ from config import TELEGRAM_TOKEN, BASE_URL, ADMIN_TELEGRAM_ID
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id == ADMIN_TELEGRAM_ID:
-        webapp_url = BASE_URL + "/admin.html"
         text = "Панель преподавателя:"
-        btn_text = "Открыть результаты"
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Результаты", web_app=WebAppInfo(url=BASE_URL + "/admin.html"))],
+            [InlineKeyboardButton("Пройти как студент", web_app=WebAppInfo(url=BASE_URL))],
+        ])
     else:
-        webapp_url = BASE_URL
         text = (
             "Практика: Бизнес-задачи сайтов\n\n"
             "Нажмите кнопку ниже, чтобы открыть задание:"
         )
-        btn_text = "Начать практику"
-
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton(btn_text, web_app=WebAppInfo(url=webapp_url))],
-    ])
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Начать практику", web_app=WebAppInfo(url=BASE_URL))],
+        ])
     await update.message.reply_text(text, reply_markup=keyboard)
 
 
