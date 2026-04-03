@@ -75,13 +75,20 @@ async function toggleDetail(studentId) {
 
     try {
         const subs = await api("GET", "/api/admin/student/" + studentId);
+        var html = "";
         if (subs.length === 0) {
-            detail.innerHTML = '<div class="detail-answer">Нет ответов</div>';
+            html = '<div class="detail-answer">Нет ответов</div>';
         } else {
-            detail.innerHTML = subs.map(function (s) {
+            html = subs.map(function (s) {
                 return renderStep(s.step, s.answers);
             }).join("");
         }
+        html += '<button class="btn-reset-student" data-sid="' + studentId + '" style="margin-top:8px;padding:8px 16px;background:transparent;border:1px solid #f44336;color:#f44336;border-radius:8px;font-size:13px;cursor:pointer">Сбросить прохождение</button>';
+        detail.innerHTML = html;
+        detail.querySelector(".btn-reset-student").addEventListener("click", function (e) {
+            e.stopPropagation();
+            resetStudent(studentId);
+        });
         detail.classList.add("open");
     } catch (e) {
         detail.innerHTML = '<div class="detail-answer">Ошибка загрузки</div>';
@@ -144,6 +151,20 @@ function esc(str) {
     var div = document.createElement("div");
     div.textContent = str || "";
     return div.innerHTML;
+}
+
+// Reset student
+async function resetStudent(studentId) {
+    if (!confirm("Сбросить прохождение этого студента? Он сможет пройти заново.")) return;
+    try {
+        await fetch(API_BASE + "/api/admin/reset/" + studentId, {
+            method: "POST",
+            headers: AUTH_HEADER,
+        });
+        loadStudents();
+    } catch (e) {
+        tg.showAlert("Ошибка: " + e.message);
+    }
 }
 
 // CSV export

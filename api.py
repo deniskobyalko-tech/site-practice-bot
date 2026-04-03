@@ -152,6 +152,16 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         await conn.commit()
         return {"ok": True}
 
+    @app.post("/api/admin/reset/{student_id}")
+    async def admin_reset_student(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student_id,))
+        await conn.execute("DELETE FROM web_tokens WHERE student_id = ?", (student_id,))
+        await conn.execute("DELETE FROM students WHERE id = ?", (student_id,))
+        await conn.commit()
+        return {"ok": True}
+
     # Store bot instance for notifications
     app.state.bot = None
 
