@@ -1,6 +1,6 @@
 import aiosqlite
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 from config import TELEGRAM_TOKEN, BASE_URL, ADMIN_TELEGRAM_ID
 from db import is_paused, set_paused
 
@@ -117,6 +117,12 @@ async def send_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def fallback_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id == ADMIN_TELEGRAM_ID:
+        return
+    await update.message.reply_text("Бот отдыхает 😴\nНе нужно его беспокоить!")
+
+
 def create_bot(conn: aiosqlite.Connection) -> Application:
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.bot_data["db_conn"] = conn
@@ -125,4 +131,5 @@ def create_bot(conn: aiosqlite.Connection) -> Application:
     app.add_handler(CommandHandler("resume", resume))
     app.add_handler(CommandHandler("congrats", congrats))
     app.add_handler(CommandHandler("send_results", send_results))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, fallback_message))
     return app
