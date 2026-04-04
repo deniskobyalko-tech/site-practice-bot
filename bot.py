@@ -43,10 +43,33 @@ async def resume(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Практика возобновлена. Новые студенты могут начинать.")
 
 
+CONGRATS_TEXT = (
+    "🎉🎉🎉\n\n"
+    "<b>Поздравляю!</b>\n\n"
+    "Ваша практическая работа проверена.\n\n"
+    "🏆 <b>Ваш результат: 20 из 20 баллов</b>\n\n"
+    "Вы продемонстрировали глубокое понимание фреймворка, "
+    "качественный анализ и зрелое маркетинговое мышление.\n\n"
+    "Так держать!"
+)
+
+
+async def congrats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_TELEGRAM_ID:
+        return
+    await context.bot.send_message(
+        chat_id=ADMIN_TELEGRAM_ID,
+        text=CONGRATS_TEXT,
+        parse_mode="HTML",
+    )
+    await update.message.reply_text("Тестовое сообщение отправлено тебе.")
+
+
 def create_bot(conn: aiosqlite.Connection) -> Application:
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.bot_data["db_conn"] = conn
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("pause", pause))
     app.add_handler(CommandHandler("resume", resume))
+    app.add_handler(CommandHandler("congrats", congrats))
     return app
