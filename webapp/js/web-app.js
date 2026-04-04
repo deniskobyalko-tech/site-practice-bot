@@ -634,7 +634,36 @@ function setupAutoSave() {
     });
 }
 
+// --- Pause check ---
+
+async function checkPauseAndInit() {
+    try {
+        var resp = await fetch(API_BASE + "/api/status");
+        var status = await resp.json();
+        if (status.paused) {
+            // Check if student has a saved token (already registered)
+            if (!savedToken) {
+                showScreen("screen-paused");
+                return;
+            }
+            // Has token — verify it's valid
+            try {
+                await api("GET", "/api/student");
+                // Valid — let them continue
+            } catch (e) {
+                // Invalid token — show paused screen
+                showScreen("screen-paused");
+                return;
+            }
+        }
+    } catch (e) {
+        // Status check failed — proceed normally
+    }
+    await loadStudent();
+    setupAutoSave();
+}
+
 // --- Init ---
 
 initRegistration();
-loadStudent().then(function () { setupAutoSave(); });
+checkPauseAndInit();

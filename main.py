@@ -25,7 +25,7 @@ async def main():
     api_task = asyncio.create_task(server.serve())
 
     # Run bot
-    bot_app = create_bot()
+    bot_app = create_bot(conn)
     async with bot_app:
         await bot_app.start()
         # Pass bot instance to FastAPI for completion notifications

@@ -621,7 +621,31 @@ function setupAutoSave() {
     });
 }
 
+// --- Pause check ---
+
+async function checkPauseAndInit() {
+    try {
+        var resp = await fetch(API_BASE + "/api/status");
+        var status = await resp.json();
+        if (status.paused) {
+            // Check if student is already registered
+            try {
+                await api("GET", "/api/student");
+                // Registered — let them continue
+            } catch (e) {
+                // Not registered — show paused screen
+                showScreen("screen-paused");
+                return;
+            }
+        }
+    } catch (e) {
+        // Status check failed — proceed normally
+    }
+    await loadStudent();
+    setupAutoSave();
+}
+
 // --- Init ---
 
 initRegistration();
-loadStudent().then(function () { setupAutoSave(); });
+checkPauseAndInit();

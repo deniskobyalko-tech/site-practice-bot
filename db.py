@@ -32,6 +32,11 @@ CREATE TABLE IF NOT EXISTS sites (
     name TEXT NOT NULL,
     url TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 """
 
 
@@ -142,6 +147,32 @@ async def get_sites(conn):
     rows = await cursor.fetchall()
     return [dict(r) for r in rows]
 
+
+# --- Settings ---
+
+async def get_setting(conn, key: str, default: str = "") -> str:
+    cursor = await conn.execute("SELECT value FROM settings WHERE key = ?", (key,))
+    row = await cursor.fetchone()
+    return row["value"] if row else default
+
+
+async def set_setting(conn, key: str, value: str) -> None:
+    await conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (key, value),
+    )
+    await conn.commit()
+
+
+async def is_paused(conn) -> bool:
+    return (await get_setting(conn, "paused", "false")) == "true"
+
+
+async def set_paused(conn, paused: bool) -> None:
+    await set_setting(conn, "paused", "true" if paused else "false")
+
+
+# --- Sites ---
 
 async def seed_sites(conn, sites_data: list[dict]):
     cursor = await conn.execute("SELECT COUNT(*) as cnt FROM sites")

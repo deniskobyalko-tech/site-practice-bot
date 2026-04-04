@@ -10,6 +10,7 @@ from db import (
     create_student, get_student_by_telegram_id, get_all_students,
     save_submission, get_student_progress, get_submissions, get_sites, seed_sites,
     create_web_token, get_student_by_web_token, delete_web_tokens,
+    is_paused,
 )
 from config import GROUPS
 
@@ -41,6 +42,11 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
     def require_admin(telegram_id: int):
         if telegram_id != admin_telegram_id:
             raise HTTPException(403, "Admin access required")
+
+    @app.get("/api/status")
+    async def get_status():
+        paused = await is_paused(conn)
+        return {"paused": paused}
 
     @app.post("/api/web-register")
     async def web_register(req: RegisterRequest):
