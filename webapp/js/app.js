@@ -628,14 +628,20 @@ async function checkPauseAndInit() {
         var resp = await fetch(API_BASE + "/api/status");
         var status = await resp.json();
         if (status.paused) {
-            // Check if student is already registered
-            try {
-                await api("GET", "/api/student");
-                // Registered — let them continue
-            } catch (e) {
-                // Not registered — show paused screen
-                showScreen("screen-paused");
-                return;
+            // Check if user is in whitelist
+            var userData = tg.initDataUnsafe && tg.initDataUnsafe.user;
+            var userId = userData ? userData.id : null;
+            var whitelisted = userId && status.whitelist && status.whitelist.indexOf(userId) !== -1;
+            if (!whitelisted) {
+                // Check if student is already registered
+                try {
+                    await api("GET", "/api/student");
+                    // Registered — let them continue
+                } catch (e) {
+                    // Not registered — show paused screen
+                    showScreen("screen-paused");
+                    return;
+                }
             }
         }
     } catch (e) {

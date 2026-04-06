@@ -172,6 +172,20 @@ async def set_paused(conn, paused: bool) -> None:
     await set_setting(conn, "paused", "true" if paused else "false")
 
 
+async def get_whitelist(conn) -> list[int]:
+    raw = await get_setting(conn, "whitelist", "")
+    if not raw:
+        return []
+    return [int(x.strip()) for x in raw.split(",") if x.strip()]
+
+
+async def add_to_whitelist(conn, telegram_id: int) -> None:
+    current = await get_whitelist(conn)
+    if telegram_id not in current:
+        current.append(telegram_id)
+    await set_setting(conn, "whitelist", ",".join(str(x) for x in current))
+
+
 # --- Sites ---
 
 async def seed_sites(conn, sites_data: list[dict]):

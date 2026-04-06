@@ -2,7 +2,7 @@ import aiosqlite
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 from config import TELEGRAM_TOKEN, BASE_URL, ADMIN_TELEGRAM_ID
-from db import is_paused, set_paused
+from db import is_paused, set_paused, add_to_whitelist
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -117,6 +117,22 @@ async def send_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def allow(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_TELEGRAM_ID:
+        return
+    if not context.args:
+        await update.message.reply_text("Использование: /allow <telegram_id>")
+        return
+    try:
+        tg_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("ID должен быть числом.")
+        return
+    conn: aiosqlite.Connection = context.bot_data["db_conn"]
+    await add_to_whitelist(conn, tg_id)
+    await update.message.reply_text(f"Пользователь {tg_id} добавлен в белый список. Может проходить практику.")
+
+
 async def fallback_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id == ADMIN_TELEGRAM_ID:
         return
@@ -131,5 +147,6 @@ def create_bot(conn: aiosqlite.Connection) -> Application:
     app.add_handler(CommandHandler("resume", resume))
     app.add_handler(CommandHandler("congrats", congrats))
     app.add_handler(CommandHandler("send_results", send_results))
+    app.add_handler(CommandHandler("allow", allow))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, fallback_message))
     return app
