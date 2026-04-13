@@ -15,14 +15,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("Результаты", web_app=WebAppInfo(url=BASE_URL + "/admin.html"))],
             [InlineKeyboardButton("Пройти как студент", web_app=WebAppInfo(url=BASE_URL))],
+            [InlineKeyboardButton("Пройти тест по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
         ])
     else:
-        text = (
-            "Практика: Бизнес-задачи сайтов\n\n"
-            "Нажмите кнопку ниже, чтобы открыть задание:"
-        )
+        text = "Выберите практику:"
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Начать практику", web_app=WebAppInfo(url=BASE_URL))],
+            [InlineKeyboardButton("Практика по созданию сайтов", web_app=WebAppInfo(url=BASE_URL))],
+            [InlineKeyboardButton("Практика по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
         ])
     await update.message.reply_text(text, reply_markup=keyboard)
 
@@ -83,6 +82,21 @@ WINNERS_TG_IDS = [
     591051029,    # Щокало Ангелина
     1073118773,   # Шейкина Анастасия
     1080593197,   # Сидоркина Елизавета
+    # МДК04
+    815080383,    # Разживина Ирина
+    191439014,    # Богородицкая Ольга
+    993070247,    # Иманова Алина
+    1109039695,   # Казанова Анна
+    1286615308,   # Козлова Софья
+    858990589,    # Проскурина Мария
+    798891633,    # Киселев Александр
+    908826694,    # Мусатов Андрей
+    1126073677,   # Пепеляева Софья
+    5177823459,   # лабадина александра
+    1056135259,   # Гурьева Карина
+    1175867847,   # Захарина Елизавета
+    953066674,    # Лазаренко Вероника
+    810383432,    # Лысенкова Олеся
 ]
 
 
