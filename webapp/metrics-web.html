@@ -16,9 +16,33 @@
 
     <div id="metrics-grid" class="metrics-grid"></div>
 
+    <!-- Thinking Model hint -->
+    <div class="hint-block">
+        <button class="btn-hint" id="btn-show-hint">Подсказка: как думать</button>
+        <div id="hint-content" class="hint-content">
+            <div class="hint-title">Модель разбора задачи</div>
+            <div class="hint-questions">
+                <div class="hint-q">1. Где узкое место? <span>Трафик? Конверсия? Продукт? Удержание?</span></div>
+                <div class="hint-q">2. Где деньги? <span>Как это влияет на выручку?</span></div>
+                <div class="hint-q">3. Где рычаг? <span>Что даст максимальный эффект при минимальном усилии?</span></div>
+                <div class="hint-q">4. Что будет, если ничего не делать? <span>Какой прогноз без действий?</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnosis -->
     <div class="diagnosis-block">
         <button class="btn-secondary" id="btn-show-diagnosis">Показать диагноз</button>
         <pre id="diagnosis-content" class="diagnosis-content"></pre>
+    </div>
+
+    <!-- Hypothesis form -->
+    <div id="hypothesis-block" class="hypothesis-block" style="display:none">
+        <div class="hypothesis-title">Сформулируй гипотезу</div>
+        <p class="hint">Формат: Если [действие], то [результат], потому что [причина]</p>
+        <textarea id="hypothesis-text" rows="3" placeholder="Если изменить заголовок объявления, то CTR вырастет на 30%, потому что текущий заголовок не содержит УТП..."></textarea>
+        <button class="btn-primary btn-small" id="btn-save-hypothesis">Готово</button>
+        <div id="hypothesis-result" class="hypothesis-result"></div>
     </div>
 
     <script src="js/metrics.js"></script>

@@ -135,6 +135,74 @@
     padding-top: 8px;
 }
 
+/* Tooltip metric link */
+.tooltip-link {
+    font-size: 11px;
+    color: var(--link);
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--hint);
+    line-height: 1.4;
+    font-style: italic;
+}
+
+/* Hint block (Thinking Model) */
+.hint-block {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.btn-hint {
+    padding: 8px 16px;
+    border: 1px dashed var(--hint);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--hint);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-hint:hover {
+    border-color: var(--link);
+    color: var(--link);
+}
+
+.hint-content {
+    display: none;
+    text-align: left;
+    background: var(--secondary-bg);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 12px;
+    border-left: 3px solid #f9a825;
+}
+
+.hint-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f9a825;
+    margin-bottom: 12px;
+}
+
+.hint-questions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.hint-q {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.hint-q span {
+    font-weight: 400;
+    color: var(--hint);
+    font-size: 13px;
+}
+
 /* Diagnosis */
 .diagnosis-block {
     text-align: center;
@@ -159,6 +227,45 @@
     font-family: inherit;
     color: var(--text);
     border-left: 3px solid var(--link);
+}
+
+/* Hypothesis form */
+.hypothesis-block {
+    background: var(--secondary-bg);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    border-left: 3px solid #4caf50;
+}
+
+.hypothesis-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #4caf50;
+    margin-bottom: 8px;
+}
+
+.hypothesis-block .hint {
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.hypothesis-block textarea {
+    margin-bottom: 8px;
+}
+
+.btn-small {
+    width: auto;
+    padding: 8px 20px;
+    font-size: 13px;
+}
+
+.hypothesis-result {
+    display: none;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #4caf50;
+    font-weight: 600;
 }
 
 /* Mobile adjustments for tooltips */
