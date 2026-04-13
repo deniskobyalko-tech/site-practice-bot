@@ -9,6 +9,20 @@ var questions = [];
 var currentIndex = 0;
 var answers = {};
 
+function getResultMessage(score) {
+    if (score >= 9) return "Отличный результат! Вы прекрасно разбираетесь в метриках";
+    if (score >= 7) return "Хороший результат! Есть что подтянуть";
+    if (score >= 5) return "Неплохо, но стоит повторить материал";
+    return "Нужно подучить метрики — попробуйте ещё раз";
+}
+
+function showResult(score) {
+    document.getElementById("result-score").textContent = score;
+    var msgEl = document.getElementById("result-message");
+    if (msgEl) msgEl.textContent = getResultMessage(score);
+    showScreen("result");
+}
+
 function showScreen(id) {
     document.querySelectorAll(".screen").forEach(function (s) {
         s.classList.add("hidden");
@@ -35,8 +49,7 @@ async function init() {
     }
     var result = await resp.json();
     if (result.submitted) {
-        document.getElementById("result-score").textContent = result.score;
-        showScreen("result");
+        showResult(result.score);
         return;
     }
 
@@ -138,8 +151,7 @@ document.getElementById("btn-next").addEventListener("click", async function () 
         } else {
             result = await resp.json();
         }
-        document.getElementById("result-score").textContent = result.score;
-        showScreen("result");
+        showResult(result.score);
     }
 });
 

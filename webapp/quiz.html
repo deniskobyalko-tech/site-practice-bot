@@ -7,66 +7,161 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
+        /* Start screen */
+        #screen-start, #screen-result, #screen-register {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 70vh;
+        }
+        .quiz-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--btn-bg), #3a7bd5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(94, 187, 255, 0.25);
+        }
+        .quiz-subtitle {
+            color: var(--hint);
+            font-size: 15px;
+            text-align: center;
+            line-height: 1.5;
+            max-width: 280px;
+            margin-bottom: 8px;
+        }
+        .quiz-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--secondary-bg);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 13px;
+            color: var(--hint);
+            margin-bottom: 32px;
+        }
+        .quiz-badge span { color: var(--btn-bg); font-weight: 600; }
+
+        /* Progress */
         .quiz-progress {
             text-align: center;
             color: var(--hint);
-            font-size: 14px;
-            margin-bottom: 16px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            font-weight: 500;
         }
         .progress-bar-track {
-            height: 4px;
+            height: 6px;
             background: var(--secondary-bg);
-            border-radius: 2px;
-            margin-bottom: 24px;
+            border-radius: 3px;
+            margin-bottom: 28px;
+            overflow: hidden;
         }
         .progress-bar-fill {
             height: 100%;
-            background: var(--btn-bg);
-            border-radius: 2px;
-            transition: width 0.3s;
+            background: linear-gradient(90deg, var(--btn-bg), #3a7bd5);
+            border-radius: 3px;
+            transition: width 0.4s ease-out;
         }
+
+        /* Question */
+        .quiz-question {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            line-height: 1.45;
+        }
+
+        /* Option cards */
         .option-card {
             background: var(--secondary-bg);
             border: 2px solid transparent;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 8px;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 10px;
             cursor: pointer;
             font-size: 15px;
-            transition: all 0.2s;
+            line-height: 1.4;
+            transition: border-color 0.2s, background 0.2s, transform 0.15s;
+            position: relative;
         }
-        .option-card:hover { border-color: var(--hint); }
+        .option-card:hover {
+            border-color: var(--hint);
+        }
+        .option-card:active {
+            transform: scale(0.98);
+        }
         .option-card.selected {
             border-color: var(--btn-bg);
-            background: var(--section-bg);
+            background: rgba(94, 187, 255, 0.1);
+            box-shadow: 0 0 0 1px var(--btn-bg);
         }
-        .quiz-question {
-            font-size: 17px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            line-height: 1.4;
+        .option-card.selected::before {
+            content: "✓";
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--btn-bg);
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        /* Result screen */
+        .result-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid var(--btn-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 0 30px rgba(94, 187, 255, 0.2);
         }
         .result-score {
-            font-size: 48px;
+            font-size: 42px;
             font-weight: 700;
             color: var(--btn-bg);
-            text-align: center;
-            margin: 20px 0;
+            line-height: 1;
         }
-        .result-label {
+        .result-total {
+            font-size: 14px;
+            color: var(--hint);
+            margin-top: 2px;
+        }
+        .result-message {
             text-align: center;
             color: var(--hint);
-            font-size: 16px;
+            font-size: 15px;
+            margin-top: 8px;
+            margin-bottom: 24px;
+        }
+
+        /* Registration adjustments */
+        #screen-register {
+            align-items: stretch;
+            justify-content: flex-start;
+            min-height: auto;
+            padding-top: 20px;
         }
     </style>
 </head>
 <body>
     <!-- Start screen -->
     <div id="screen-start" class="screen">
-        <div class="done-icon" style="background:var(--btn-bg)">&#9776;</div>
-        <h1 style="text-align:center">Тест по метрикам</h1>
-        <p class="hint" style="text-align:center">10 вопросов о маркетинговых метриках. Каждый правильный ответ — 1 балл.</p>
-        <button class="btn-primary" id="btn-start" style="margin-top:24px">Начать тест</button>
+        <div class="quiz-icon">📊</div>
+        <h1 style="text-align:center;margin-bottom:12px">Тест по метрикам</h1>
+        <p class="quiz-subtitle">Проверьте свои знания маркетинговых метрик</p>
+        <div class="quiz-badge">📝 <span>10</span> вопросов · <span>1</span> балл за ответ</div>
+        <button class="btn-primary" id="btn-start">Начать тест</button>
     </div>
 
     <!-- Registration -->
@@ -95,16 +190,18 @@
         <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill"></div></div>
         <div class="quiz-question" id="quiz-question-text"></div>
         <div id="quiz-options"></div>
-        <button class="btn-primary" id="btn-next" disabled style="margin-top:16px">Далее</button>
+        <button class="btn-primary" id="btn-next" disabled style="margin-top:20px">Далее →</button>
     </div>
 
     <!-- Result screen -->
     <div id="screen-result" class="screen hidden">
-        <div class="done-icon">&#10003;</div>
-        <h2 style="text-align:center">Тест завершён!</h2>
-        <div class="result-score" id="result-score">0</div>
-        <div class="result-label">из 10</div>
-        <button class="btn-secondary" id="btn-close" style="margin-top:24px" onclick="Telegram.WebApp.close()">Закрыть</button>
+        <div class="result-circle">
+            <div class="result-score" id="result-score">0</div>
+            <div class="result-total">из 10</div>
+        </div>
+        <h2 style="text-align:center;margin-bottom:4px">Тест завершён!</h2>
+        <p class="result-message" id="result-message">Ваши ответы сохранены</p>
+        <button class="btn-secondary" id="btn-close" onclick="Telegram.WebApp.close()">Закрыть</button>
     </div>
 
     <script src="js/quiz.js"></script>
