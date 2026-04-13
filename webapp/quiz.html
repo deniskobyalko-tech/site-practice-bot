@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест по метрикам</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .quiz-progress {
+            text-align: center;
+            color: var(--hint);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .progress-bar-track {
+            height: 4px;
+            background: var(--secondary-bg);
+            border-radius: 2px;
+            margin-bottom: 24px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--btn-bg);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+        .option-card {
+            background: var(--secondary-bg);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        .option-card:hover { border-color: var(--hint); }
+        .option-card.selected {
+            border-color: var(--btn-bg);
+            background: var(--section-bg);
+        }
+        .quiz-question {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .result-score {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--btn-bg);
+            text-align: center;
+            margin: 20px 0;
+        }
+        .result-label {
+            text-align: center;
+            color: var(--hint);
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Start screen -->
+    <div id="screen-start" class="screen">
+        <div class="done-icon" style="background:var(--btn-bg)">&#9776;</div>
+        <h1 style="text-align:center">Тест по метрикам</h1>
+        <p class="hint" style="text-align:center">10 вопросов о маркетинговых метриках. Каждый правильный ответ — 1 балл.</p>
+        <button class="btn-primary" id="btn-start" style="margin-top:24px">Начать тест</button>
+    </div>
+
+    <!-- Not registered -->
+    <div id="screen-not-registered" class="screen hidden">
+        <div class="done-icon" style="background:#f9a825">!</div>
+        <h2 style="text-align:center">Сначала зарегистрируйтесь</h2>
+        <p class="hint" style="text-align:center">Откройте «Практику по созданию сайтов» и пройдите регистрацию, затем вернитесь к тесту.</p>
+    </div>
+
+    <!-- Question screen -->
+    <div id="screen-question" class="screen hidden">
+        <div class="quiz-progress" id="quiz-progress">Вопрос 1 из 10</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill"></div></div>
+        <div class="quiz-question" id="quiz-question-text"></div>
+        <div id="quiz-options"></div>
+        <button class="btn-primary" id="btn-next" disabled style="margin-top:16px">Далее</button>
+    </div>
+
+    <!-- Result screen -->
+    <div id="screen-result" class="screen hidden">
+        <div class="done-icon">&#10003;</div>
+        <h2 style="text-align:center">Тест завершён!</h2>
+        <div class="result-score" id="result-score">0</div>
+        <div class="result-label">из 10</div>
+        <button class="btn-secondary" id="btn-close" style="margin-top:24px" onclick="Telegram.WebApp.close()">Закрыть</button>
+    </div>
+
+    <script src="js/quiz.js"></script>
+</body>
+</html>
