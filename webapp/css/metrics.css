@@ -1,277 +1,422 @@
-/* --- Metrics Trainer --- */
+/* --- Metrics Trainer v2 — Trusty Dashboard Design System --- */
+/* Based on: Blue glassmorphism, Inter font, Trusty Alarm Bot Mini App */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --mt-bg: #2949ff;
+    --mt-bg-dark: #1a1a2e;
+    --mt-glass: rgba(255, 255, 255, 0.1);
+    --mt-glass-border: rgba(255, 255, 255, 0.15);
+    --mt-glass-hover: rgba(255, 255, 255, 0.18);
+    --mt-text: #ffffff;
+    --mt-text-secondary: rgba(255, 255, 255, 0.6);
+    --mt-text-muted: rgba(255, 255, 255, 0.4);
+    --mt-green: #7cffb8;
+    --mt-red: #ff8a8a;
+    --mt-pink: #e838d2;
+    --mt-yellow: #ffd666;
+    --mt-blue-accent: #5ebbff;
+}
+
+/* Override body for trainer pages */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #2949ff 0%, #1a1a4e 100%);
+    min-height: 100vh;
+    color: var(--mt-text);
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+/* --- Header --- */
 
 .trainer-header {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
+    padding-top: 8px;
 }
 
 .trainer-header h1 {
-    font-size: 22px;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
     margin-bottom: 8px;
+    background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .trainer-header .hint {
+    color: var(--mt-text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
     margin-bottom: 16px;
 }
 
 .trainer-header .btn-primary {
-    width: auto;
-    padding: 10px 24px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: var(--mt-text);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
     font-size: 14px;
+    padding: 10px 28px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: auto;
 }
 
-/* Metrics Grid */
+.trainer-header .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.trainer-header .btn-primary:active {
+    transform: scale(0.97);
+}
+
+/* --- Metrics Grid --- */
+
 .metrics-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .metric-card {
-    background: var(--secondary-bg);
-    border-radius: 12px;
-    padding: 14px;
+    background: var(--mt-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--mt-glass-border);
+    border-radius: 16px;
+    padding: 14px 16px;
     cursor: pointer;
-    transition: border-color 0.2s, transform 0.1s;
-    border: 2px solid transparent;
+    transition: all 0.2s;
     position: relative;
     -webkit-tap-highlight-color: transparent;
+}
+
+.metric-card:hover {
+    background: var(--mt-glass-hover);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 .metric-card:active {
     transform: scale(0.97);
 }
 
-.metric-card:hover {
-    border-color: var(--link);
-}
-
 .metric-name {
-    font-size: 12px;
-    color: var(--hint);
-    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--mt-text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
 }
 
 .metric-value {
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
     margin-bottom: 4px;
+    color: var(--mt-text);
 }
 
 .metric-delta {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
 }
 
 .delta-good {
-    color: #4caf50;
+    color: var(--mt-green);
 }
 
 .delta-bad {
-    color: #f44336;
+    color: var(--mt-red);
 }
 
-/* Tooltips */
+/* --- Tooltips --- */
+
 .metric-tooltip {
     position: absolute;
     top: 100%;
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
-    background: var(--bg);
-    border: 1px solid var(--link);
-    border-radius: 10px;
-    padding: 12px;
-    width: 260px;
-    margin-top: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    background: rgba(15, 14, 30, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 14px;
+    width: 270px;
+    margin-top: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .metric-tooltip::before {
     content: "";
     position: absolute;
-    top: -6px;
+    top: -5px;
     left: 50%;
     transform: translateX(-50%) rotate(45deg);
     width: 10px;
     height: 10px;
-    background: var(--bg);
-    border-left: 1px solid var(--link);
-    border-top: 1px solid var(--link);
+    background: rgba(15, 14, 30, 0.95);
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .tooltip-title {
     font-size: 14px;
     font-weight: 700;
-    color: var(--link);
+    color: var(--mt-blue-accent);
     margin-bottom: 8px;
 }
 
 .tooltip-formula {
-    font-size: 12px;
-    color: var(--text);
-    background: var(--secondary-bg);
-    padding: 6px 8px;
-    border-radius: 6px;
+    font-size: 11px;
+    color: var(--mt-text);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 8px 10px;
+    border-radius: 8px;
     margin-bottom: 8px;
-    font-family: monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    line-height: 1.5;
 }
 
 .tooltip-norms {
     font-size: 12px;
-    color: var(--hint);
+    color: var(--mt-text-secondary);
     margin-bottom: 8px;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .tooltip-interpret {
     font-size: 13px;
-    color: var(--text);
+    color: var(--mt-text);
     font-weight: 600;
-    border-top: 1px solid var(--secondary-bg);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 8px;
+    line-height: 1.4;
 }
 
-/* Tooltip metric link */
 .tooltip-link {
     font-size: 11px;
-    color: var(--link);
+    color: var(--mt-pink);
     margin-top: 8px;
-    padding-top: 6px;
-    border-top: 1px dashed var(--hint);
-    line-height: 1.4;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    line-height: 1.5;
     font-style: italic;
 }
 
-/* Hint block (Thinking Model) */
+/* --- Hint Block (Thinking Model) --- */
+
 .hint-block {
     text-align: center;
     margin-bottom: 16px;
 }
 
 .btn-hint {
-    padding: 8px 16px;
-    border: 1px dashed var(--hint);
-    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    padding: 8px 20px;
+    border: 1px dashed var(--mt-text-muted);
+    border-radius: 50px;
     background: transparent;
-    color: var(--hint);
+    color: var(--mt-text-muted);
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .btn-hint:hover {
-    border-color: var(--link);
-    color: var(--link);
+    border-color: var(--mt-yellow);
+    color: var(--mt-yellow);
 }
 
 .hint-content {
     display: none;
     text-align: left;
-    background: var(--secondary-bg);
-    border-radius: 12px;
+    background: var(--mt-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--mt-glass-border);
+    border-radius: 16px;
     padding: 16px;
     margin-top: 12px;
-    border-left: 3px solid #f9a825;
+    border-left: 3px solid var(--mt-yellow);
 }
 
 .hint-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    color: #f9a825;
+    color: var(--mt-yellow);
     margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .hint-questions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .hint-q {
     font-size: 14px;
     font-weight: 600;
-    color: var(--text);
+    color: var(--mt-text);
+    line-height: 1.4;
 }
 
 .hint-q span {
     font-weight: 400;
-    color: var(--hint);
-    font-size: 13px;
+    color: var(--mt-text-secondary);
+    font-size: 12px;
+    display: block;
+    margin-top: 2px;
 }
 
-/* Diagnosis */
+/* --- Diagnosis --- */
+
 .diagnosis-block {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
 }
 
 .diagnosis-block .btn-secondary {
+    font-family: 'Inter', sans-serif;
+    background: var(--mt-glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--mt-glass-border);
+    color: var(--mt-text);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 28px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
     width: auto;
-    padding: 12px 24px;
+}
+
+.diagnosis-block .btn-secondary:hover {
+    background: var(--mt-glass-hover);
+    border-color: var(--mt-blue-accent);
+    color: var(--mt-blue-accent);
 }
 
 .diagnosis-content {
     display: none;
     text-align: left;
-    background: var(--secondary-bg);
-    border-radius: 12px;
-    padding: 16px;
+    background: var(--mt-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--mt-glass-border);
+    border-radius: 16px;
+    padding: 18px;
     margin-top: 12px;
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.7;
     white-space: pre-wrap;
-    font-family: inherit;
-    color: var(--text);
-    border-left: 3px solid var(--link);
+    font-family: 'Inter', sans-serif;
+    color: var(--mt-text);
+    border-left: 3px solid var(--mt-blue-accent);
 }
 
-/* Hypothesis form */
+/* --- Hypothesis Form --- */
+
 .hypothesis-block {
-    background: var(--secondary-bg);
-    border-radius: 12px;
-    padding: 16px;
+    background: var(--mt-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--mt-glass-border);
+    border-radius: 16px;
+    padding: 18px;
     margin-bottom: 24px;
-    border-left: 3px solid #4caf50;
+    border-left: 3px solid var(--mt-green);
 }
 
 .hypothesis-title {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
-    color: #4caf50;
+    color: var(--mt-green);
     margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .hypothesis-block .hint {
     font-size: 12px;
-    margin-bottom: 8px;
+    color: var(--mt-text-secondary);
+    margin-bottom: 10px;
 }
 
 .hypothesis-block textarea {
-    margin-bottom: 8px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--mt-text);
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.hypothesis-block textarea:focus {
+    border-color: var(--mt-green);
+}
+
+.hypothesis-block textarea::placeholder {
+    color: var(--mt-text-muted);
 }
 
 .btn-small {
-    width: auto;
-    padding: 8px 20px;
+    font-family: 'Inter', sans-serif;
+    background: rgba(124, 255, 184, 0.15);
+    border: 1px solid rgba(124, 255, 184, 0.3);
+    color: var(--mt-green);
+    font-weight: 600;
     font-size: 13px;
+    padding: 8px 24px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: auto;
+}
+
+.btn-small:hover {
+    background: rgba(124, 255, 184, 0.25);
 }
 
 .hypothesis-result {
     display: none;
-    margin-top: 8px;
+    margin-top: 10px;
     font-size: 13px;
-    color: #4caf50;
+    color: var(--mt-green);
     font-weight: 600;
 }
 
-/* Mobile adjustments for tooltips */
-@media (max-width: 400px) {
+/* --- Mobile Tooltip Adjustments --- */
+
+@media (max-width: 420px) {
     .metric-tooltip {
-        width: 220px;
+        width: 230px;
         left: 0;
         transform: none;
     }
@@ -291,4 +436,21 @@
         left: 20px;
         transform: rotate(45deg);
     }
+
+    .metric-value {
+        font-size: 20px;
+    }
+
+    .metrics-grid {
+        gap: 8px;
+    }
+
+    .metric-card {
+        padding: 12px 14px;
+    }
+}
+
+/* --- 5-column last row fix --- */
+.metrics-grid .metric-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
 }
