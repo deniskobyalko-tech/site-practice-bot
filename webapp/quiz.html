@@ -69,11 +69,24 @@
         <button class="btn-primary" id="btn-start" style="margin-top:24px">Начать тест</button>
     </div>
 
-    <!-- Not registered -->
-    <div id="screen-not-registered" class="screen hidden">
-        <div class="done-icon" style="background:#f9a825">!</div>
-        <h2 style="text-align:center">Сначала зарегистрируйтесь</h2>
-        <p class="hint" style="text-align:center">Откройте «Практику по созданию сайтов» и пройдите регистрацию, затем вернитесь к тесту.</p>
+    <!-- Registration -->
+    <div id="screen-register" class="screen hidden">
+        <h1>Регистрация</h1>
+        <p class="hint">Для прохождения теста укажите группу и ФИО</p>
+        <div class="form-group">
+            <label>Группа</label>
+            <div class="group-buttons" id="quiz-group-select">
+                <div class="group-btn" data-val="МДК01">МДК01</div>
+                <div class="group-btn" data-val="МДК02">МДК02</div>
+                <div class="group-btn" data-val="МДК03">МДК03</div>
+                <div class="group-btn" data-val="МДК04">МДК04</div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>ФИО</label>
+            <input type="text" id="quiz-reg-name" placeholder="Иванов Иван Иванович">
+        </div>
+        <button class="btn-primary" id="btn-register">Продолжить</button>
     </div>
 
     <!-- Question screen -->

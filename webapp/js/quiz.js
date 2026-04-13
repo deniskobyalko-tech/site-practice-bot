@@ -30,7 +30,7 @@ async function init() {
     // Check if registered
     var resp = await api("GET", "/api/quiz/result");
     if (resp.status === 404) {
-        showScreen("not-registered");
+        showScreen("register");
         return;
     }
     var result = await resp.json();
@@ -79,6 +79,40 @@ function esc(str) {
 function escAttr(str) {
     return (str || "").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+
+// Registration
+var selectedGroup = "";
+
+document.querySelectorAll("#quiz-group-select .group-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        document.querySelectorAll("#quiz-group-select .group-btn").forEach(function (b) {
+            b.classList.remove("selected");
+        });
+        btn.classList.add("selected");
+        selectedGroup = btn.dataset.val;
+    });
+});
+
+document.getElementById("btn-register").addEventListener("click", async function () {
+    var name = document.getElementById("quiz-reg-name").value.trim();
+    if (!selectedGroup) {
+        tg.showAlert("Выберите группу");
+        return;
+    }
+    if (!name) {
+        tg.showAlert("Введите ФИО");
+        return;
+    }
+    var resp = await api("POST", "/api/register", { name: name, group: selectedGroup });
+    if (!resp.ok) {
+        tg.showAlert("Ошибка регистрации");
+        return;
+    }
+    // Registered — now load quiz
+    var qResp = await api("GET", "/api/quiz/questions");
+    questions = await qResp.json();
+    showScreen("start");
+});
 
 // Start button
 document.getElementById("btn-start").addEventListener("click", function () {
