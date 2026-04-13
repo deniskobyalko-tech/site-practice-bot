@@ -68,19 +68,40 @@
         <span class="count-badge" id="count"></span>
     </div>
 
-    <div class="filter-bar">
-        <select id="group-filter">
-            <option value="">Все группы</option>
-            <option value="МДК01">МДК01</option>
-            <option value="МДК02">МДК02</option>
-            <option value="МДК03">МДК03</option>
-            <option value="МДК04">МДК04</option>
-        </select>
-        <button class="btn-secondary" id="btn-export">CSV</button>
+    <div class="tab-bar" style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--secondary-bg)">
+        <button class="tab-btn active" data-tab="practice" style="flex:1;padding:10px;background:none;border:none;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--btn-bg);margin-bottom:-2px">Практика</button>
+        <button class="tab-btn" data-tab="quiz" style="flex:1;padding:10px;background:none;border:none;color:var(--hint);font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">Тест по метрикам</button>
     </div>
 
-    <div id="students-list"></div>
-    <div id="empty-state" class="empty-state hidden">Пока нет студентов</div>
+    <div id="tab-practice">
+        <div class="filter-bar">
+            <select id="group-filter">
+                <option value="">Все группы</option>
+                <option value="МДК01">МДК01</option>
+                <option value="МДК02">МДК02</option>
+                <option value="МДК03">МДК03</option>
+                <option value="МДК04">МДК04</option>
+            </select>
+            <button class="btn-secondary" id="btn-export">CSV</button>
+        </div>
+        <div id="students-list"></div>
+        <div id="empty-state" class="empty-state hidden">Пока нет студентов</div>
+    </div>
+
+    <div id="tab-quiz" class="hidden">
+        <div class="filter-bar">
+            <select id="quiz-group-filter">
+                <option value="">Все группы</option>
+                <option value="МДК01">МДК01</option>
+                <option value="МДК02">МДК02</option>
+                <option value="МДК03">МДК03</option>
+                <option value="МДК04">МДК04</option>
+            </select>
+            <button class="btn-secondary" id="btn-quiz-export">CSV</button>
+        </div>
+        <div id="quiz-students-list"></div>
+        <div id="quiz-empty-state" class="empty-state hidden">Пока никто не прошёл тест</div>
+    </div>
 
     <script src="js/admin.js"></script>
 </body>

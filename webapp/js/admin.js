@@ -192,3 +192,134 @@ document.getElementById("group-filter").addEventListener("change", loadStudents)
 
 // Init
 loadStudents();
+
+// --- Quiz Tab ---
+
+var activeTab = "practice";
+
+document.querySelectorAll(".tab-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        activeTab = btn.dataset.tab;
+        document.querySelectorAll(".tab-btn").forEach(function (b) {
+            b.style.borderBottomColor = "transparent";
+            b.style.color = "var(--hint)";
+            b.classList.remove("active");
+        });
+        btn.style.borderBottomColor = "var(--btn-bg)";
+        btn.style.color = "var(--text)";
+        btn.classList.add("active");
+
+        document.getElementById("tab-practice").classList.toggle("hidden", activeTab !== "practice");
+        document.getElementById("tab-quiz").classList.toggle("hidden", activeTab !== "quiz");
+
+        if (activeTab === "quiz") loadQuizStudents();
+    });
+});
+
+async function loadQuizStudents() {
+    var group = document.getElementById("quiz-group-filter").value;
+    var query = group ? "?group=" + encodeURIComponent(group) : "";
+    try {
+        var students = await api("GET", "/api/admin/quiz/students" + query);
+        var list = document.getElementById("quiz-students-list");
+        var empty = document.getElementById("quiz-empty-state");
+
+        if (students.length === 0) {
+            list.innerHTML = "";
+            empty.classList.remove("hidden");
+            return;
+        }
+
+        empty.classList.add("hidden");
+        list.innerHTML = students.map(function (s) {
+            return '<div class="student-row" data-quiz-sid="' + s.student_id + '">' +
+                '<div class="student-meta">' +
+                    '<div>' +
+                        '<div class="student-name">' + esc(s.name) + '</div>' +
+                        '<div class="student-group">' + esc(s.group_name) + '</div>' +
+                    '</div>' +
+                    '<span class="status-badge status-submitted">' + s.score + '/10</span>' +
+                '</div>' +
+                '<div class="student-detail" id="quiz-detail-' + s.student_id + '"></div>' +
+            '</div>';
+        }).join("");
+
+        list.querySelectorAll(".student-row").forEach(function (row) {
+            row.addEventListener("click", function () {
+                toggleQuizDetail(row.dataset.quizSid);
+            });
+        });
+    } catch (e) {
+        tg.showAlert("Ошибка: " + e.message);
+    }
+}
+
+async function toggleQuizDetail(studentId) {
+    var detail = document.getElementById("quiz-detail-" + studentId);
+    if (detail.classList.contains("open")) {
+        detail.classList.remove("open");
+        return;
+    }
+    try {
+        var data = await api("GET", "/api/admin/quiz/student/" + studentId);
+        var html = '<div class="detail-step"><h4>Результат: ' + data.score + ' из ' + data.total + '</h4>';
+        var questions = Object.keys(data.details);
+        questions.sort();
+        questions.forEach(function (qId, i) {
+            var d = data.details[qId];
+            var color = d.is_correct ? "#4caf50" : "#f44336";
+            html += '<div class="detail-answer" style="margin:6px 0;padding:6px;border-left:3px solid ' + color + ';padding-left:8px">';
+            html += '<strong>' + (i + 1) + '. ' + esc(d.text) + '</strong><br>';
+            html += '<span style="color:' + color + '">' + esc(d.student_answer || "—") + '</span>';
+            if (!d.is_correct) {
+                html += ' <span style="color:var(--hint)">→ ' + esc(d.correct_answer) + '</span>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+        html += '<button class="btn-reset-quiz" data-sid="' + studentId + '" style="margin-top:8px;padding:8px 16px;background:transparent;border:1px solid #f44336;color:#f44336;border-radius:8px;font-size:13px;cursor:pointer">Сбросить тест</button>';
+        detail.innerHTML = html;
+        detail.querySelector(".btn-reset-quiz").addEventListener("click", function (e) {
+            e.stopPropagation();
+            resetQuiz(studentId);
+        });
+        detail.classList.add("open");
+    } catch (e) {
+        detail.innerHTML = '<div class="detail-answer">Ошибка загрузки</div>';
+        detail.classList.add("open");
+    }
+}
+
+async function resetQuiz(studentId) {
+    if (!confirm("Сбросить тест этого студента? Он сможет пройти заново.")) return;
+    try {
+        await fetch(API_BASE + "/api/admin/quiz/reset/" + studentId, {
+            method: "POST",
+            headers: AUTH_HEADER,
+        });
+        loadQuizStudents();
+    } catch (e) {
+        tg.showAlert("Ошибка: " + e.message);
+    }
+}
+
+// Quiz CSV export
+document.getElementById("btn-quiz-export").addEventListener("click", async function () {
+    var group = document.getElementById("quiz-group-filter").value;
+    var query = group ? "?group=" + encodeURIComponent(group) : "";
+    try {
+        var resp = await fetch(API_BASE + "/api/admin/quiz/export" + query, { headers: AUTH_HEADER });
+        var blob = await resp.blob();
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "quiz_results.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        tg.showAlert("Ошибка экспорта: " + e.message);
+    }
+});
+
+// Quiz filter
+document.getElementById("quiz-group-filter").addEventListener("change", loadQuizStudents);
