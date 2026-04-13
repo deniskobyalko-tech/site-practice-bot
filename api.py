@@ -2,7 +2,7 @@ import csv
 import io
 import json
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 import aiosqlite
 from auth import validate_init_data, parse_init_data
@@ -11,7 +11,9 @@ from db import (
     save_submission, get_student_progress, get_submissions, get_sites, seed_sites,
     create_web_token, get_student_by_web_token, delete_web_tokens,
     is_paused, get_whitelist,
+    save_quiz_submission, get_quiz_submission, get_quiz_submissions_all, delete_quiz_submission,
 )
+from quiz_data import get_shuffled_questions, score_answers
 from config import GROUPS
 
 
@@ -154,6 +156,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         student = await get_student_by_telegram_id(conn, telegram_id)
         if not student:
             raise HTTPException(404, "Student not found")
+        await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM students WHERE id = ?", (student["id"],))
         await conn.commit()
@@ -163,10 +166,96 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
     async def admin_reset_student(student_id: int, request: Request):
         telegram_id = (await get_user_id(request))[0]
         require_admin(telegram_id)
+        await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student_id,))
         await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student_id,))
         await conn.execute("DELETE FROM web_tokens WHERE student_id = ?", (student_id,))
         await conn.execute("DELETE FROM students WHERE id = ?", (student_id,))
         await conn.commit()
+        return {"ok": True}
+
+    # --- Quiz ---
+
+    @app.get("/api/quiz/questions")
+    async def quiz_questions(request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found. Register first.")
+        return get_shuffled_questions()
+
+    @app.post("/api/quiz/submit")
+    async def quiz_submit(request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found")
+        existing = await get_quiz_submission(conn, student["id"])
+        if existing:
+            return JSONResponse(
+                status_code=409,
+                content={"error": "already_submitted", "score": existing["score"]},
+            )
+        body = await request.json()
+        answers = body.get("answers", {})
+        score, _ = score_answers(answers)
+        await save_quiz_submission(conn, student["id"], answers, score)
+        return {"ok": True, "score": score, "total": 10}
+
+    @app.get("/api/quiz/result")
+    async def quiz_result(request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found")
+        sub = await get_quiz_submission(conn, student["id"])
+        if not sub:
+            return {"submitted": False}
+        return {"submitted": True, "score": sub["score"], "total": 10}
+
+    @app.get("/api/admin/quiz/students")
+    async def admin_quiz_students(request: Request, group: str = None):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        return await get_quiz_submissions_all(conn, group=group)
+
+    @app.get("/api/admin/quiz/student/{student_id}")
+    async def admin_quiz_student_detail(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        sub = await get_quiz_submission(conn, student_id)
+        if not sub:
+            raise HTTPException(404, "No quiz submission")
+        _, details = score_answers(json.loads(sub["answers"]))
+        return {"score": sub["score"], "total": 10, "submitted_at": sub["submitted_at"], "details": details}
+
+    @app.get("/api/admin/quiz/export")
+    async def admin_quiz_export(request: Request, group: str = None):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        subs = await get_quiz_submissions_all(conn, group=group)
+        output = io.StringIO()
+        writer = csv.writer(output)
+        from quiz_data import QUIZ_QUESTIONS
+        q_headers = [f"Q{i+1}" for i in range(len(QUIZ_QUESTIONS))]
+        writer.writerow(["Name", "Group", "Score"] + q_headers)
+        for s in subs:
+            answers = json.loads(s["answers"])
+            row = [s["name"], s["group_name"], s["score"]]
+            for q in QUIZ_QUESTIONS:
+                row.append(answers.get(q["id"], ""))
+            writer.writerow(row)
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=quiz_results.csv"},
+        )
+
+    @app.post("/api/admin/quiz/reset/{student_id}")
+    async def admin_quiz_reset(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        await delete_quiz_submission(conn, student_id)
         return {"ok": True}
 
     # Store bot instance for notifications
