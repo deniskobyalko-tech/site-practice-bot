@@ -198,8 +198,9 @@ function formatDelta(metric, delta) {
 }
 
 function isDeltaGood(metric, delta) {
-    if (metric.goodDirection === "up") return delta >= 0;
-    return delta <= 0;
+    if (delta === 0) return false;
+    if (metric.goodDirection === "up") return delta > 0;
+    return delta < 0;
 }
 
 // --- State ---
