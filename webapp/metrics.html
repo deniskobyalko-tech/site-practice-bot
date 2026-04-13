@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажёр метрик</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/metrics.css">
+</head>
+<body>
+    <div class="trainer-header">
+        <h1>Тренажёр метрик</h1>
+        <p class="hint">Нажимайте на метрики, чтобы узнать что они значат. Проанализируйте дашборд и поставьте диагноз.</p>
+        <button class="btn-primary" id="btn-new-scenario">Новый сценарий</button>
+    </div>
+
+    <div id="metrics-grid" class="metrics-grid"></div>
+
+    <div class="diagnosis-block">
+        <button class="btn-secondary" id="btn-show-diagnosis">Показать диагноз</button>
+        <pre id="diagnosis-content" class="diagnosis-content"></pre>
+    </div>
+
+    <script src="js/metrics.js"></script>
+    <script>
+        if (window.Telegram && window.Telegram.WebApp) {
+            var tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+        }
+    </script>
+</body>
+</html>

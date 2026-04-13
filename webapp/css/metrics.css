@@ -1,0 +1,187 @@
+/* --- Metrics Trainer --- */
+
+.trainer-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.trainer-header h1 {
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.trainer-header .hint {
+    margin-bottom: 16px;
+}
+
+.trainer-header .btn-primary {
+    width: auto;
+    padding: 10px 24px;
+    font-size: 14px;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.metric-card {
+    background: var(--secondary-bg);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.1s;
+    border: 2px solid transparent;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.metric-card:active {
+    transform: scale(0.97);
+}
+
+.metric-card:hover {
+    border-color: var(--link);
+}
+
+.metric-name {
+    font-size: 12px;
+    color: var(--hint);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.metric-delta {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.delta-good {
+    color: #4caf50;
+}
+
+.delta-bad {
+    color: #f44336;
+}
+
+/* Tooltips */
+.metric-tooltip {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: var(--bg);
+    border: 1px solid var(--link);
+    border-radius: 10px;
+    padding: 12px;
+    width: 260px;
+    margin-top: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.metric-tooltip::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 10px;
+    height: 10px;
+    background: var(--bg);
+    border-left: 1px solid var(--link);
+    border-top: 1px solid var(--link);
+}
+
+.tooltip-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--link);
+    margin-bottom: 8px;
+}
+
+.tooltip-formula {
+    font-size: 12px;
+    color: var(--text);
+    background: var(--secondary-bg);
+    padding: 6px 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-family: monospace;
+}
+
+.tooltip-norms {
+    font-size: 12px;
+    color: var(--hint);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.tooltip-interpret {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 600;
+    border-top: 1px solid var(--secondary-bg);
+    padding-top: 8px;
+}
+
+/* Diagnosis */
+.diagnosis-block {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.diagnosis-block .btn-secondary {
+    width: auto;
+    padding: 12px 24px;
+}
+
+.diagnosis-content {
+    display: none;
+    text-align: left;
+    background: var(--secondary-bg);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    font-family: inherit;
+    color: var(--text);
+    border-left: 3px solid var(--link);
+}
+
+/* Mobile adjustments for tooltips */
+@media (max-width: 400px) {
+    .metric-tooltip {
+        width: 220px;
+        left: 0;
+        transform: none;
+    }
+
+    .metric-card:nth-child(even) .metric-tooltip {
+        left: auto;
+        right: 0;
+        transform: none;
+    }
+
+    .metric-card:nth-child(even) .metric-tooltip::before {
+        left: auto;
+        right: 20px;
+    }
+
+    .metric-card:nth-child(odd) .metric-tooltip::before {
+        left: 20px;
+        transform: rotate(45deg);
+    }
+}

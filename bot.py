@@ -16,14 +16,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Результаты", web_app=WebAppInfo(url=BASE_URL + "/admin.html"))],
             [InlineKeyboardButton("Пройти как студент", web_app=WebAppInfo(url=BASE_URL))],
             [InlineKeyboardButton("Пройти тест по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
+            [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
         ])
     else:
-        text = "Бот отдыхает 😴\nПрактика временно закрыта."
-        keyboard = None
-    if keyboard:
-        await update.message.reply_text(text, reply_markup=keyboard)
-    else:
-        await update.message.reply_text(text)
+        text = "Бот отдыхает 😴\nПрактика временно закрыта.\n\nНо тренажёр метрик доступен:"
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
+        ])
+    await update.message.reply_text(text, reply_markup=keyboard)
 
 
 async def pause(update: Update, context: ContextTypes.DEFAULT_TYPE):
