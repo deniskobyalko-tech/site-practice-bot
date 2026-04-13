@@ -238,7 +238,7 @@ async function loadQuizStudents() {
                         '<div class="student-name">' + esc(s.name) + '</div>' +
                         '<div class="student-group">' + esc(s.group_name) + '</div>' +
                     '</div>' +
-                    '<span class="status-badge status-submitted">' + s.score + '/10</span>' +
+                    '<span class="status-badge status-submitted">' + s.score + '/5</span>' +
                 '</div>' +
                 '<div class="student-detail" id="quiz-detail-' + s.student_id + '"></div>' +
             '</div>';

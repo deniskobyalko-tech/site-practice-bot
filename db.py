@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS quiz_submissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER NOT NULL REFERENCES students(id),
     answers TEXT NOT NULL,
-    score INTEGER NOT NULL,
+    score REAL NOT NULL,
     submitted_at TEXT NOT NULL,
     UNIQUE(student_id)
 );
@@ -212,7 +212,7 @@ async def seed_sites(conn, sites_data: list[dict]):
 
 # --- Quiz ---
 
-async def save_quiz_submission(conn, student_id: int, answers: dict, score: int) -> int:
+async def save_quiz_submission(conn, student_id: int, answers: dict, score: float) -> int:
     now = datetime.now(timezone.utc).isoformat()
     cursor = await conn.execute(
         "INSERT INTO quiz_submissions (student_id, answers, score, submitted_at) VALUES (?, ?, ?, ?)",

@@ -85,17 +85,18 @@ def get_shuffled_questions() -> list[dict]:
     return result
 
 
-def score_answers(answers: dict[str, str]) -> tuple[int, dict[str, dict]]:
+def score_answers(answers: dict[str, str]) -> tuple[float, dict[str, dict]]:
     """Score student answers. Returns (score, details).
+    Each correct answer = 0.5 points. Max = 5.0.
     details: {question_id: {text, student_answer, correct_answer, is_correct}}
     """
-    score = 0
+    score = 0.0
     details = {}
     for q in QUIZ_QUESTIONS:
         student_answer = answers.get(q["id"], "")
         is_correct = student_answer == q["correct"]
         if is_correct:
-            score += 1
+            score += 0.5
         details[q["id"]] = {
             "text": q["text"],
             "student_answer": student_answer,

@@ -199,7 +199,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         answers = body.get("answers", {})
         score, _ = score_answers(answers)
         await save_quiz_submission(conn, student["id"], answers, score)
-        return {"ok": True, "score": score, "total": 10}
+        return {"ok": True, "score": score, "total": 5}
 
     @app.get("/api/quiz/result")
     async def quiz_result(request: Request):
@@ -210,7 +210,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         sub = await get_quiz_submission(conn, student["id"])
         if not sub:
             return {"submitted": False}
-        return {"submitted": True, "score": sub["score"], "total": 10}
+        return {"submitted": True, "score": sub["score"], "total": 5}
 
     @app.get("/api/admin/quiz/students")
     async def admin_quiz_students(request: Request, group: str = None):
@@ -226,7 +226,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         if not sub:
             raise HTTPException(404, "No quiz submission")
         _, details = score_answers(json.loads(sub["answers"]))
-        return {"score": sub["score"], "total": 10, "submitted_at": sub["submitted_at"], "details": details}
+        return {"score": sub["score"], "total": 5, "submitted_at": sub["submitted_at"], "details": details}
 
     @app.get("/api/admin/quiz/export")
     async def admin_quiz_export(request: Request, group: str = None):

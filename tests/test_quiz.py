@@ -17,11 +17,11 @@ async def db_conn():
 async def test_save_and_get_quiz_submission(db_conn):
     sid = await create_student(db_conn, telegram_id=100, name="Test", group_name="МДК01")
     answers = {"q1": "Сессии (визиты)", "q2": "CTR"}
-    await save_quiz_submission(db_conn, sid, answers, score=1)
+    await save_quiz_submission(db_conn, sid, answers, score=0.5)
 
     result = await get_quiz_submission(db_conn, sid)
     assert result is not None
-    assert result["score"] == 1
+    assert result["score"] == 0.5
     assert json.loads(result["answers"])["q1"] == "Сессии (визиты)"
 
 
@@ -119,12 +119,12 @@ async def test_quiz_submit_and_result(client):
     answers = {"q1": "Сессии (визиты)", "q2": "wrong", "q3": "wrong"}
     resp = await client.post("/api/quiz/submit", json={"answers": answers}, headers=auth_header(501))
     assert resp.status_code == 200
-    assert resp.json()["score"] == 1
+    assert resp.json()["score"] == 0.5
 
     # Check result endpoint
     resp = await client.get("/api/quiz/result", headers=auth_header(501))
     assert resp.status_code == 200
-    assert resp.json()["score"] == 1
+    assert resp.json()["score"] == 0.5
     assert "details" not in resp.json()
 
 
@@ -157,7 +157,7 @@ async def test_quiz_admin_detail(client):
     assert resp.status_code == 200
     data = resp.json()
     assert "details" in data
-    assert data["score"] == 1
+    assert data["score"] == 0.5
 
 
 @pytest.mark.asyncio
