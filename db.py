@@ -37,6 +37,15 @@ CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS quiz_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL REFERENCES students(id),
+    answers TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    submitted_at TEXT NOT NULL,
+    UNIQUE(student_id)
+);
 """
 
 
@@ -198,4 +207,46 @@ async def seed_sites(conn, sites_data: list[dict]):
             "INSERT INTO sites (category, name, url) VALUES (?, ?, ?)",
             (site["category"], site["name"], site["url"]),
         )
+    await conn.commit()
+
+
+# --- Quiz ---
+
+async def save_quiz_submission(conn, student_id: int, answers: dict, score: int) -> int:
+    now = datetime.now(timezone.utc).isoformat()
+    cursor = await conn.execute(
+        "INSERT INTO quiz_submissions (student_id, answers, score, submitted_at) VALUES (?, ?, ?, ?)",
+        (student_id, json.dumps(answers, ensure_ascii=False), score, now),
+    )
+    await conn.commit()
+    return cursor.lastrowid
+
+
+async def get_quiz_submission(conn, student_id: int):
+    cursor = await conn.execute(
+        "SELECT * FROM quiz_submissions WHERE student_id = ?", (student_id,)
+    )
+    row = await cursor.fetchone()
+    return dict(row) if row else None
+
+
+async def get_quiz_submissions_all(conn, group: str = None):
+    if group:
+        cursor = await conn.execute(
+            """SELECT qs.*, s.name, s.group_name FROM quiz_submissions qs
+               JOIN students s ON qs.student_id = s.id
+               WHERE s.group_name = ? ORDER BY s.name""",
+            (group,),
+        )
+    else:
+        cursor = await conn.execute(
+            """SELECT qs.*, s.name, s.group_name FROM quiz_submissions qs
+               JOIN students s ON qs.student_id = s.id ORDER BY s.name"""
+        )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def delete_quiz_submission(conn, student_id: int):
+    await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student_id,))
     await conn.commit()
