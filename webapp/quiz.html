@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
     <style>
         /* Start screen */
-        #screen-start, #screen-result, #screen-register {
+        #screen-start, #screen-result, #screen-register, #screen-analyzing {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -70,6 +70,19 @@
             transition: width 0.4s ease-out;
         }
 
+        /* Question animations */
+        .question-body {
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+        .question-body.slide-out {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        .question-body.slide-in {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+
         /* Question */
         .quiz-question {
             font-size: 18px;
@@ -88,9 +101,21 @@
             cursor: pointer;
             font-size: 15px;
             line-height: 1.4;
-            transition: border-color 0.2s, background 0.2s, transform 0.15s;
+            transition: border-color 0.2s, background 0.2s, transform 0.15s, opacity 0.3s;
             position: relative;
+            opacity: 0;
+            animation: fadeInUp 0.3s ease-out forwards;
         }
+        .option-card:nth-child(1) { animation-delay: 0.05s; }
+        .option-card:nth-child(2) { animation-delay: 0.1s; }
+        .option-card:nth-child(3) { animation-delay: 0.15s; }
+        .option-card:nth-child(4) { animation-delay: 0.2s; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .option-card:hover {
             border-color: var(--hint);
         }
@@ -103,7 +128,7 @@
             box-shadow: 0 0 0 1px var(--btn-bg);
         }
         .option-card.selected::before {
-            content: "✓";
+            content: "\2713";
             position: absolute;
             right: 14px;
             top: 50%;
@@ -111,6 +136,97 @@
             color: var(--btn-bg);
             font-weight: 700;
             font-size: 16px;
+        }
+
+        /* Analyzing screen */
+        .analyzing-spinner {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            margin-bottom: 28px;
+        }
+        .analyzing-spinner .ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid transparent;
+        }
+        .analyzing-spinner .ring:nth-child(1) {
+            border-top-color: var(--btn-bg);
+            animation: spin 1.2s linear infinite;
+        }
+        .analyzing-spinner .ring:nth-child(2) {
+            border-right-color: #3a7bd5;
+            animation: spin 1.8s linear infinite reverse;
+            width: 60px; height: 60px;
+            top: 10px; left: 10px;
+        }
+        .analyzing-spinner .ring:nth-child(3) {
+            border-bottom-color: var(--hint);
+            animation: spin 2.4s linear infinite;
+            width: 40px; height: 40px;
+            top: 20px; left: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .analyzing-text {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .analyzing-sub {
+            color: var(--hint);
+            font-size: 13px;
+            text-align: center;
+        }
+        .analyzing-dots::after {
+            content: "";
+            animation: dots 1.5s steps(3) infinite;
+        }
+        @keyframes dots {
+            0%   { content: ""; }
+            33%  { content: "."; }
+            66%  { content: ".."; }
+            100% { content: "..."; }
+        }
+        .analyzing-steps {
+            margin-top: 24px;
+            width: 100%;
+            max-width: 260px;
+        }
+        .analyzing-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--hint);
+            padding: 6px 0;
+            opacity: 0;
+            animation: fadeInStep 0.4s ease-out forwards;
+        }
+        .analyzing-step:nth-child(1) { animation-delay: 0.2s; }
+        .analyzing-step:nth-child(2) { animation-delay: 0.8s; }
+        .analyzing-step:nth-child(3) { animation-delay: 1.4s; }
+        .analyzing-step .step-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--secondary-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        .analyzing-step.done .step-icon {
+            background: var(--btn-bg);
+            color: #fff;
+        }
+        @keyframes fadeInStep {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         /* Result screen */
@@ -125,6 +241,11 @@
             justify-content: center;
             margin: 0 auto 20px;
             box-shadow: 0 0 30px rgba(94, 187, 255, 0.2);
+            animation: scaleIn 0.5s ease-out;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
         .result-score {
             font-size: 42px;
@@ -143,6 +264,7 @@
             font-size: 15px;
             margin-top: 8px;
             margin-bottom: 24px;
+            animation: fadeInUp 0.5s ease-out 0.3s both;
         }
 
         /* Registration adjustments */
@@ -188,9 +310,27 @@
     <div id="screen-question" class="screen hidden">
         <div class="quiz-progress" id="quiz-progress">Вопрос 1 из 10</div>
         <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill"></div></div>
-        <div class="quiz-question" id="quiz-question-text"></div>
-        <div id="quiz-options"></div>
+        <div class="question-body" id="question-body">
+            <div class="quiz-question" id="quiz-question-text"></div>
+            <div id="quiz-options"></div>
+        </div>
         <button class="btn-primary" id="btn-next" disabled style="margin-top:20px">Далее →</button>
+    </div>
+
+    <!-- Analyzing screen -->
+    <div id="screen-analyzing" class="screen hidden">
+        <div class="analyzing-spinner">
+            <div class="ring"></div>
+            <div class="ring"></div>
+            <div class="ring"></div>
+        </div>
+        <div class="analyzing-text">Анализируем ответы<span class="analyzing-dots"></span></div>
+        <div class="analyzing-sub">Подождите, это займёт пару секунд</div>
+        <div class="analyzing-steps">
+            <div class="analyzing-step done"><div class="step-icon">✓</div> Ответы получены</div>
+            <div class="analyzing-step"><div class="step-icon">⟳</div> Проверяем правильность</div>
+            <div class="analyzing-step"><div class="step-icon">⟳</div> Подсчитываем баллы</div>
+        </div>
     </div>
 
     <!-- Result screen -->

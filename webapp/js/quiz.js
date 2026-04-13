@@ -41,7 +41,6 @@ async function api(method, path, body) {
 }
 
 async function init() {
-    // Check if registered
     var resp = await api("GET", "/api/quiz/result");
     if (resp.status === 404) {
         showScreen("register");
@@ -52,35 +51,79 @@ async function init() {
         showResult(result.score);
         return;
     }
-
-    // Load questions
     var qResp = await api("GET", "/api/quiz/questions");
     questions = await qResp.json();
     showScreen("start");
 }
 
-function renderQuestion() {
+function renderQuestion(animate) {
+    var body = document.getElementById("question-body");
     var q = questions[currentIndex];
-    document.getElementById("quiz-progress").textContent = "Вопрос " + (currentIndex + 1) + " из " + questions.length;
-    document.getElementById("progress-fill").style.width = ((currentIndex + 1) / questions.length * 100) + "%";
-    document.getElementById("quiz-question-text").textContent = q.text;
 
-    var optionsHtml = q.options.map(function (opt) {
-        return '<div class="option-card" data-value="' + escAttr(opt) + '">' + esc(opt) + '</div>';
-    }).join("");
-    document.getElementById("quiz-options").innerHTML = optionsHtml;
-    document.getElementById("btn-next").disabled = true;
+    function doRender() {
+        document.getElementById("quiz-progress").textContent = "Вопрос " + (currentIndex + 1) + " из " + questions.length;
+        document.getElementById("progress-fill").style.width = ((currentIndex + 1) / questions.length * 100) + "%";
+        document.getElementById("quiz-question-text").textContent = q.text;
 
-    document.querySelectorAll(".option-card").forEach(function (card) {
-        card.addEventListener("click", function () {
-            document.querySelectorAll(".option-card").forEach(function (c) {
-                c.classList.remove("selected");
+        var optionsHtml = q.options.map(function (opt) {
+            return '<div class="option-card" data-value="' + escAttr(opt) + '">' + esc(opt) + '</div>';
+        }).join("");
+        document.getElementById("quiz-options").innerHTML = optionsHtml;
+        document.getElementById("btn-next").disabled = true;
+
+        document.querySelectorAll(".option-card").forEach(function (card) {
+            card.addEventListener("click", function () {
+                document.querySelectorAll(".option-card").forEach(function (c) {
+                    c.classList.remove("selected");
+                });
+                card.classList.add("selected");
+                answers[q.id] = card.dataset.value;
+                document.getElementById("btn-next").disabled = false;
             });
-            card.classList.add("selected");
-            answers[q.id] = card.dataset.value;
-            document.getElementById("btn-next").disabled = false;
         });
-    });
+
+        if (animate) {
+            body.classList.add("slide-in");
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    body.classList.remove("slide-in");
+                });
+            });
+        }
+    }
+
+    if (animate) {
+        body.classList.add("slide-out");
+        setTimeout(function () {
+            body.classList.remove("slide-out");
+            doRender();
+        }, 250);
+    } else {
+        doRender();
+    }
+}
+
+function showAnalyzingThenResult(score) {
+    showScreen("analyzing");
+
+    // Mark steps as "done" progressively
+    var steps = document.querySelectorAll("#screen-analyzing .analyzing-step");
+    setTimeout(function () {
+        if (steps[1]) {
+            steps[1].classList.add("done");
+            steps[1].querySelector(".step-icon").textContent = "✓";
+        }
+    }, 900);
+    setTimeout(function () {
+        if (steps[2]) {
+            steps[2].classList.add("done");
+            steps[2].querySelector(".step-icon").textContent = "✓";
+        }
+    }, 1600);
+
+    setTimeout(function () {
+        showResult(score);
+    }, 2200);
 }
 
 function esc(str) {
@@ -121,7 +164,6 @@ document.getElementById("btn-register").addEventListener("click", async function
         tg.showAlert("Ошибка регистрации");
         return;
     }
-    // Registered — now load quiz
     var qResp = await api("GET", "/api/quiz/questions");
     questions = await qResp.json();
     showScreen("start");
@@ -132,17 +174,21 @@ document.getElementById("btn-start").addEventListener("click", function () {
     currentIndex = 0;
     answers = {};
     showScreen("question");
-    renderQuestion();
+    renderQuestion(false);
 });
 
 // Next button
 document.getElementById("btn-next").addEventListener("click", async function () {
     currentIndex++;
     if (currentIndex < questions.length) {
-        renderQuestion();
+        renderQuestion(true);
     } else {
         // Submit
         document.getElementById("btn-next").disabled = true;
+
+        // Show analyzing screen immediately
+        showScreen("analyzing");
+
         var resp = await api("POST", "/api/quiz/submit", { answers: answers });
         var result;
         if (resp.status === 409) {
@@ -151,7 +197,24 @@ document.getElementById("btn-next").addEventListener("click", async function () 
         } else {
             result = await resp.json();
         }
-        showResult(result.score);
+
+        // Animate analyzing steps, then show result
+        var steps = document.querySelectorAll("#screen-analyzing .analyzing-step");
+        setTimeout(function () {
+            if (steps[1]) {
+                steps[1].classList.add("done");
+                steps[1].querySelector(".step-icon").textContent = "\u2713";
+            }
+        }, 700);
+        setTimeout(function () {
+            if (steps[2]) {
+                steps[2].classList.add("done");
+                steps[2].querySelector(".step-icon").textContent = "\u2713";
+            }
+        }, 1400);
+        setTimeout(function () {
+            showResult(result.score);
+        }, 2000);
     }
 });
 
