@@ -1,80 +1,154 @@
-/* --- Metrics Trainer v2 — Trusty Dashboard Design System --- */
-/* Based on: Blue glassmorphism, Inter font, Trusty Alarm Bot Mini App */
+/* --- Metrics Trainer — MagicUI-inspired Design --- */
+/* Based on: magicuidesign/magicui, cruip, shadcn-landing-page */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-    --mt-bg: #2949ff;
-    --mt-bg-dark: #1a1a2e;
-    --mt-glass: rgba(255, 255, 255, 0.1);
-    --mt-glass-border: rgba(255, 255, 255, 0.15);
-    --mt-glass-hover: rgba(255, 255, 255, 0.18);
-    --mt-text: #ffffff;
-    --mt-text-secondary: rgba(255, 255, 255, 0.6);
-    --mt-text-muted: rgba(255, 255, 255, 0.4);
-    --mt-green: #7cffb8;
-    --mt-red: #ff8a8a;
-    --mt-pink: #e838d2;
-    --mt-yellow: #ffd666;
-    --mt-blue-accent: #5ebbff;
+    --mt-bg: #030712;
+    --mt-card: rgba(255, 255, 255, 0.03);
+    --mt-card-border: rgba(255, 255, 255, 0.08);
+    --mt-card-hover: rgba(255, 255, 255, 0.06);
+    --mt-card-glow: 0 -20px 80px -20px rgba(255, 255, 255, 0.12) inset;
+    --mt-text: #e2e8f0;
+    --mt-text-bright: #f8fafc;
+    --mt-text-muted: rgba(165, 180, 252, 0.65);
+    --mt-text-dim: rgba(255, 255, 255, 0.35);
+    --mt-green: #34d399;
+    --mt-red: #fb7185;
+    --mt-pink: #D247BF;
+    --mt-cyan: #22d3ee;
+    --mt-amber: #ffaa40;
+    --mt-purple: #9c40ff;
+    --mt-indigo: #6366f1;
+    --mt-blue: #3b82f6;
 }
 
-/* Override body for trainer pages */
+/* --- Animated gradient for text --- */
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+}
+
+/* --- Body --- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #2949ff 0%, #1a1a4e 100%);
+    background: var(--mt-bg);
     min-height: 100vh;
     color: var(--mt-text);
     padding: 16px;
     max-width: 480px;
     margin: 0 auto;
+    position: relative;
+    overflow-x: hidden;
 }
+
+/* Ambient color blobs */
+body::before,
+body::after {
+    content: "";
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.3;
+    z-index: 0;
+    pointer-events: none;
+    animation: pulse-glow 8s ease-in-out infinite;
+}
+
+body::before {
+    width: 300px;
+    height: 300px;
+    background: var(--mt-indigo);
+    top: -80px;
+    right: -100px;
+}
+
+body::after {
+    width: 250px;
+    height: 250px;
+    background: var(--mt-purple);
+    bottom: 20%;
+    left: -80px;
+    animation-delay: 4s;
+}
+
+/* All content above blobs */
+body > * {
+    position: relative;
+    z-index: 1;
+}
+
+.hidden { display: none !important; }
 
 /* --- Header --- */
 
 .trainer-header {
     text-align: center;
     margin-bottom: 28px;
-    padding-top: 8px;
+    padding-top: 12px;
+    animation: fade-up 0.6s ease-out;
 }
 
 .trainer-header h1 {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
-    letter-spacing: -0.5px;
-    margin-bottom: 8px;
-    background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 100%);
+    letter-spacing: -0.7px;
+    margin-bottom: 10px;
+    background: linear-gradient(
+        135deg,
+        #e2e8f0 0%,
+        #a5b4fc 25%,
+        #f8fafc 50%,
+        #c4b5fd 75%,
+        #e2e8f0 100%
+    );
+    background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    animation: gradient-shift 6s linear infinite;
 }
 
 .trainer-header .hint {
-    color: var(--mt-text-secondary);
+    color: var(--mt-text-muted);
     font-size: 13px;
-    line-height: 1.5;
-    margin-bottom: 16px;
+    line-height: 1.6;
+    margin-bottom: 18px;
 }
 
 .trainer-header .btn-primary {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: var(--mt-text);
+    display: inline-block;
+    background: linear-gradient(135deg, var(--mt-amber), var(--mt-purple));
+    color: #fff;
     font-family: 'Inter', sans-serif;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 14px;
-    padding: 10px 28px;
+    padding: 11px 28px;
     border-radius: 50px;
+    border: none;
     cursor: pointer;
-    transition: all 0.2s;
-    width: auto;
+    transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(156, 64, 255, 0.3);
+    position: relative;
+    overflow: hidden;
 }
 
 .trainer-header .btn-primary:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(156, 64, 255, 0.5);
 }
 
 .trainer-header .btn-primary:active {
@@ -91,22 +165,34 @@ body {
 }
 
 .metric-card {
-    background: var(--mt-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--mt-glass-border);
-    border-radius: 16px;
+    background: var(--mt-card);
+    border: 1px solid var(--mt-card-border);
+    border-radius: 14px;
     padding: 14px 16px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
     position: relative;
     -webkit-tap-highlight-color: transparent;
+    box-shadow: var(--mt-card-glow);
+    animation: fade-up 0.5s ease-out both;
 }
 
+.metric-card:nth-child(1) { animation-delay: 0.05s; }
+.metric-card:nth-child(2) { animation-delay: 0.1s; }
+.metric-card:nth-child(3) { animation-delay: 0.15s; }
+.metric-card:nth-child(4) { animation-delay: 0.2s; }
+.metric-card:nth-child(5) { animation-delay: 0.25s; }
+.metric-card:nth-child(6) { animation-delay: 0.3s; }
+.metric-card:nth-child(7) { animation-delay: 0.35s; }
+.metric-card:nth-child(8) { animation-delay: 0.4s; }
+.metric-card:nth-child(9) { animation-delay: 0.45s; }
+.metric-card:nth-child(10) { animation-delay: 0.5s; }
+
 .metric-card:hover {
-    background: var(--mt-glass-hover);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px);
+    background: var(--mt-card-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-3px);
+    box-shadow: var(--mt-card-glow), 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .metric-card:active {
@@ -114,11 +200,11 @@ body {
 }
 
 .metric-name {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
-    color: var(--mt-text-secondary);
+    color: var(--mt-text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 1px;
     margin-bottom: 6px;
 }
 
@@ -127,7 +213,7 @@ body {
     font-weight: 800;
     letter-spacing: -0.5px;
     margin-bottom: 4px;
-    color: var(--mt-text);
+    color: var(--mt-text-bright);
 }
 
 .metric-delta {
@@ -143,6 +229,11 @@ body {
     color: var(--mt-red);
 }
 
+/* Last card full-width if odd count */
+.metrics-grid .metric-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+
 /* --- Tooltips --- */
 
 .metric-tooltip {
@@ -151,15 +242,16 @@ body {
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
-    background: rgba(15, 14, 30, 0.95);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(3, 7, 18, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 14px;
     padding: 14px;
     width: 270px;
     margin-top: 10px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 -10px 40px -10px rgba(99, 102, 241, 0.15) inset;
+    animation: fade-up 0.2s ease-out;
 }
 
 .metric-tooltip::before {
@@ -170,43 +262,47 @@ body {
     transform: translateX(-50%) rotate(45deg);
     width: 10px;
     height: 10px;
-    background: rgba(15, 14, 30, 0.95);
-    border-left: 1px solid rgba(255, 255, 255, 0.15);
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(3, 7, 18, 0.96);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tooltip-title {
     font-size: 14px;
     font-weight: 700;
-    color: var(--mt-blue-accent);
     margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--mt-cyan), var(--mt-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .tooltip-formula {
     font-size: 11px;
     color: var(--mt-text);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     padding: 8px 10px;
     border-radius: 8px;
     margin-bottom: 8px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
     line-height: 1.5;
 }
 
 .tooltip-norms {
     font-size: 12px;
-    color: var(--mt-text-secondary);
+    color: var(--mt-text-muted);
     margin-bottom: 8px;
     line-height: 1.6;
 }
 
 .tooltip-interpret {
     font-size: 13px;
-    color: var(--mt-text);
+    color: var(--mt-text-bright);
     font-weight: 600;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding-top: 8px;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 .tooltip-link {
@@ -214,7 +310,7 @@ body {
     color: var(--mt-pink);
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    border-top: 1px dashed rgba(255, 255, 255, 0.06);
     line-height: 1.5;
     font-style: italic;
 }
@@ -224,46 +320,48 @@ body {
 .hint-block {
     text-align: center;
     margin-bottom: 16px;
+    animation: fade-up 0.5s ease-out 0.3s both;
 }
 
 .btn-hint {
     font-family: 'Inter', sans-serif;
     padding: 8px 20px;
-    border: 1px dashed var(--mt-text-muted);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
     border-radius: 50px;
     background: transparent;
-    color: var(--mt-text-muted);
+    color: var(--mt-text-dim);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s;
 }
 
 .btn-hint:hover {
-    border-color: var(--mt-yellow);
-    color: var(--mt-yellow);
+    border-color: var(--mt-amber);
+    color: var(--mt-amber);
+    box-shadow: 0 0 20px rgba(255, 170, 64, 0.1);
 }
 
 .hint-content {
     display: none;
     text-align: left;
-    background: var(--mt-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--mt-glass-border);
-    border-radius: 16px;
+    background: var(--mt-card);
+    border: 1px solid var(--mt-card-border);
+    border-radius: 14px;
     padding: 16px;
     margin-top: 12px;
-    border-left: 3px solid var(--mt-yellow);
+    border-left: 3px solid var(--mt-amber);
+    box-shadow: var(--mt-card-glow);
+    animation: fade-up 0.3s ease-out;
 }
 
 .hint-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--mt-yellow);
+    color: var(--mt-amber);
     margin-bottom: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 .hint-questions {
@@ -275,13 +373,13 @@ body {
 .hint-q {
     font-size: 14px;
     font-weight: 600;
-    color: var(--mt-text);
+    color: var(--mt-text-bright);
     line-height: 1.4;
 }
 
 .hint-q span {
     font-weight: 400;
-    color: var(--mt-text-secondary);
+    color: var(--mt-text-muted);
     font-size: 12px;
     display: block;
     margin-top: 2px;
@@ -292,38 +390,37 @@ body {
 .diagnosis-block {
     text-align: center;
     margin-bottom: 20px;
+    animation: fade-up 0.5s ease-out 0.4s both;
 }
 
 .diagnosis-block .btn-secondary {
     font-family: 'Inter', sans-serif;
-    background: var(--mt-glass);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--mt-glass-border);
+    background: var(--mt-card);
+    border: 1px solid var(--mt-card-border);
     color: var(--mt-text);
     font-weight: 600;
     font-size: 14px;
     padding: 12px 28px;
     border-radius: 50px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s;
     width: auto;
+    box-shadow: var(--mt-card-glow);
 }
 
 .diagnosis-block .btn-secondary:hover {
-    background: var(--mt-glass-hover);
-    border-color: var(--mt-blue-accent);
-    color: var(--mt-blue-accent);
+    background: var(--mt-card-hover);
+    border-color: var(--mt-cyan);
+    color: var(--mt-cyan);
+    box-shadow: 0 0 25px rgba(34, 211, 238, 0.1);
 }
 
 .diagnosis-content {
     display: none;
     text-align: left;
-    background: var(--mt-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--mt-glass-border);
-    border-radius: 16px;
+    background: var(--mt-card);
+    border: 1px solid var(--mt-card-border);
+    border-radius: 14px;
     padding: 18px;
     margin-top: 12px;
     font-size: 14px;
@@ -331,44 +428,46 @@ body {
     white-space: pre-wrap;
     font-family: 'Inter', sans-serif;
     color: var(--mt-text);
-    border-left: 3px solid var(--mt-blue-accent);
+    border-left: 3px solid var(--mt-cyan);
+    box-shadow: var(--mt-card-glow);
+    animation: fade-up 0.3s ease-out;
 }
 
 /* --- Hypothesis Form --- */
 
 .hypothesis-block {
-    background: var(--mt-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--mt-glass-border);
-    border-radius: 16px;
+    background: var(--mt-card);
+    border: 1px solid var(--mt-card-border);
+    border-radius: 14px;
     padding: 18px;
     margin-bottom: 24px;
     border-left: 3px solid var(--mt-green);
+    box-shadow: var(--mt-card-glow);
+    animation: fade-up 0.3s ease-out;
 }
 
 .hypothesis-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--mt-green);
     margin-bottom: 8px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 .hypothesis-block .hint {
     font-size: 12px;
-    color: var(--mt-text-secondary);
+    color: var(--mt-text-muted);
     margin-bottom: 10px;
 }
 
 .hypothesis-block textarea {
     width: 100%;
     padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--mt-text);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--mt-text-bright);
     font-size: 14px;
     font-family: 'Inter', sans-serif;
     resize: vertical;
@@ -376,32 +475,35 @@ body {
     transition: border-color 0.2s;
     margin-bottom: 10px;
     box-sizing: border-box;
+    line-height: 1.5;
 }
 
 .hypothesis-block textarea:focus {
     border-color: var(--mt-green);
+    box-shadow: 0 0 15px rgba(52, 211, 153, 0.08);
 }
 
 .hypothesis-block textarea::placeholder {
-    color: var(--mt-text-muted);
+    color: var(--mt-text-dim);
 }
 
 .btn-small {
     font-family: 'Inter', sans-serif;
-    background: rgba(124, 255, 184, 0.15);
-    border: 1px solid rgba(124, 255, 184, 0.3);
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(52, 211, 153, 0.05));
+    border: 1px solid rgba(52, 211, 153, 0.25);
     color: var(--mt-green);
     font-weight: 600;
     font-size: 13px;
     padding: 8px 24px;
     border-radius: 50px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s;
     width: auto;
 }
 
 .btn-small:hover {
-    background: rgba(124, 255, 184, 0.25);
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.25), rgba(52, 211, 153, 0.1));
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.1);
 }
 
 .hypothesis-result {
@@ -448,9 +550,8 @@ body {
     .metric-card {
         padding: 12px 14px;
     }
-}
 
-/* --- 5-column last row fix --- */
-.metrics-grid .metric-card:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
+    .trainer-header h1 {
+        font-size: 24px;
+    }
 }
