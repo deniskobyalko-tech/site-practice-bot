@@ -68,6 +68,20 @@ var METRICS = [
         },
     },
     {
+        id: "cr",
+        name: "CR",
+        format: "percent_decimal",
+        goodDirection: "up",
+        formula: "CR = целевые действия / визиты × 100%",
+        norms: "E-commerce: 1–3%\nЛидогенерация: 3–7%\nSaaS: 2–5%\n< 1% — проблема с воронкой",
+        interpret: function (val) {
+            if (val < 0.5) return val.toFixed(1) + "% — критически низкая. Воронка сломана: проверь CTA, оффер, форму.";
+            if (val < 1) return val.toFixed(1) + "% — низкая. Есть проблемы с конверсией на сайте.";
+            if (val < 3) return val.toFixed(1) + "% — нормальная для e-commerce.";
+            return val.toFixed(1) + "% — хорошая конверсия.";
+        },
+    },
+    {
         id: "cpa",
         name: "CPA",
         format: "currency",
@@ -96,6 +110,7 @@ var SCENARIOS = [
             time: { min: 15, max: 45, deltaMin: -60, deltaMax: -40 },
             ctr: { min: 3, max: 8, deltaMin: -5, deltaMax: 5 },
             cpc: { min: 40, max: 90, deltaMin: -10, deltaMax: 15 },
+            cr: { min: 0.3, max: 0.8, deltaMin: -60, deltaMax: -30 },
             cpa: { min: 3000, max: 6000, deltaMin: 80, deltaMax: 150 },
         },
     },
@@ -112,6 +127,7 @@ var SCENARIOS = [
             time: { min: 90, max: 180, deltaMin: -10, deltaMax: 10 },
             ctr: { min: 0.2, max: 0.8, deltaMin: -70, deltaMax: -50 },
             cpc: { min: 100, max: 200, deltaMin: 40, deltaMax: 80 },
+            cr: { min: 1.5, max: 3, deltaMin: -10, deltaMax: 10 },
             cpa: { min: 4000, max: 8000, deltaMin: 100, deltaMax: 200 },
         },
     },
@@ -128,6 +144,7 @@ var SCENARIOS = [
             time: { min: 90, max: 180, deltaMin: -10, deltaMax: 10 },
             ctr: { min: 3, max: 8, deltaMin: -5, deltaMax: 5 },
             cpc: { min: 40, max: 90, deltaMin: -10, deltaMax: 10 },
+            cr: { min: 0.2, max: 0.6, deltaMin: -70, deltaMax: -50 },
             cpa: { min: 5000, max: 10000, deltaMin: 100, deltaMax: 200 },
         },
     },
@@ -144,6 +161,7 @@ var SCENARIOS = [
             time: { min: 40, max: 80, deltaMin: -40, deltaMax: -20 },
             ctr: { min: 1, max: 3, deltaMin: -50, deltaMax: -30 },
             cpc: { min: 80, max: 150, deltaMin: 30, deltaMax: 60 },
+            cr: { min: 0.5, max: 1.2, deltaMin: -40, deltaMax: -20 },
             cpa: { min: 3000, max: 7000, deltaMin: 60, deltaMax: 120 },
         },
     },
@@ -160,6 +178,7 @@ var SCENARIOS = [
             time: { min: 10, max: 30, deltaMin: -70, deltaMax: -50 },
             ctr: { min: 3, max: 8, deltaMin: -5, deltaMax: 5 },
             cpc: { min: 40, max: 90, deltaMin: -10, deltaMax: 10 },
+            cr: { min: 0.3, max: 0.8, deltaMin: -60, deltaMax: -40 },
             cpa: { min: 3000, max: 6000, deltaMin: 80, deltaMax: 140 },
         },
     },
