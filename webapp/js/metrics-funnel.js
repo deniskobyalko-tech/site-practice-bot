@@ -40,29 +40,41 @@ var FUNNEL_DATA = {
 };
 
 var TREE_DATA = {
+    dau: {
+        title: "DAU (Daily Active Users)",
+        formula: "Количество уникальных пользователей за день",
+        desc: "Сколько реальных людей зашли на сайт сегодня. Один человек = один DAU, сколько бы раз ни заходил.",
+        links: "DAU / MAU = Stickiness. Если DAU/MAU > 20% — продукт «липкий», пользователи возвращаются каждый день.",
+    },
+    mau: {
+        title: "MAU (Monthly Active Users)",
+        formula: "Количество уникальных пользователей за месяц",
+        desc: "Размер активной аудитории. MAU растёт — продукт привлекает. MAU падает — теряешь людей.",
+        links: "Сравни с DAU: если MAU большой, а DAU маленький — люди приходят, но не возвращаются.",
+    },
     revenue: {
         title: "Выручка",
-        formula: "Выручка = Визиты × CR × ARPU",
-        desc: "Главная метрика бизнеса. Раскладывается на три множителя — упал любой из них, падает выручка.",
-        links: "Чтобы понять почему упала выручка, смотри каждый множитель отдельно: визиты, конверсию, средний чек.",
+        formula: "Выручка = Целевые действия × ARPU",
+        desc: "Итоговый результат воронки. Всё что выше в дереве — влияет на эту цифру.",
+        links: "Упала выручка? Иди вверх по дереву: целевые действия в норме? CR в норме? DAU в норме? Найди этап, где ломается.",
     },
-    visits: {
-        title: "Визиты",
-        formula: "Количество сессий на сайте за период",
-        desc: "Сколько раз пользователи зашли на сайт. Один человек может создать несколько визитов.",
-        links: "Если визиты падают — смотри источники трафика. Если растут, но выручка нет — смотри CR и Bounce Rate.",
+    conversions: {
+        title: "Целевые действия",
+        formula: "Целевые действия = DAU × CR",
+        desc: "Покупки, заявки, звонки — то, ради чего существует сайт. Количество, не процент.",
+        links: "Мало конверсий при хорошем DAU → проблема в CR. Мало конверсий при низком DAU → проблема в трафике.",
     },
     cr: {
         title: "CR (Conversion Rate)",
-        formula: "CR = целевые действия / визиты × 100%",
-        desc: "Какой процент визитов завершается покупкой, заявкой или звонком.",
-        links: "CR падает → смотри Bounce Rate и Время. Если пользователи уходят быстро — проблема в посадочной. Если сидят долго, но не покупают — проблема в CTA/оффере.",
+        formula: "CR = целевые действия / DAU × 100%",
+        desc: "Какой процент пользователей совершает целевое действие. Главный показатель эффективности сайта.",
+        links: "CR падает → смотри Bounce Rate и Время. Если уходят быстро — первый экран не работает. Если сидят долго, но не покупают — проблема в CTA/оффере.",
     },
     arpu: {
         title: "ARPU (средний доход на пользователя)",
         formula: "ARPU = выручка / кол-во пользователей",
-        desc: "Сколько денег в среднем приносит один пользователь за период.",
-        links: "Низкий ARPU → подумай про upsell, cross-sell, повышение среднего чека. ARPU × Retention = LTV.",
+        desc: "Сколько денег в среднем приносит один пользователь. Можно поднять upsell'ом, cross-sell'ом, повышением цен.",
+        links: "ARPU × количество целевых действий = Выручка. Низкий ARPU при хорошем CR → работай над средним чеком.",
     },
     bounce: {
         title: "Bounce Rate",
@@ -126,17 +138,14 @@ function showTreeInfo(key) {
     document.querySelectorAll(".tree-node").forEach(function (n) {
         n.classList.remove("active");
     });
-    // Find and highlight the clicked node
+    var NODE_LABELS = {
+        dau: "DAU", mau: "MAU", revenue: "Выручка", conversions: "Целевые действия",
+        cr: "CR", arpu: "ARPU", bounce: "Bounce Rate", time: "Время",
+        depth: "Глубина", retention: "Retention", visits: "Визиты",
+    };
+    var targetLabel = NODE_LABELS[key] || "";
     document.querySelectorAll(".tree-node").forEach(function (n) {
-        if (n.textContent.trim() === data.title ||
-            (key === "revenue" && n.textContent.trim() === "Выручка") ||
-            (key === "visits" && n.textContent.trim() === "Визиты") ||
-            (key === "cr" && n.textContent.trim() === "CR") ||
-            (key === "arpu" && n.textContent.trim() === "ARPU") ||
-            (key === "bounce" && n.textContent.trim() === "Bounce Rate") ||
-            (key === "time" && n.textContent.trim() === "Время") ||
-            (key === "depth" && n.textContent.trim() === "Глубина") ||
-            (key === "retention" && n.textContent.trim() === "Retention")) {
+        if (n.textContent.trim() === targetLabel) {
             n.classList.add("active");
         }
     });

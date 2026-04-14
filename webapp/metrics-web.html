@@ -50,23 +50,25 @@
         <p class="section-desc">Метрики связаны между собой. Нажмите на любую, чтобы увидеть формулу и связи.</p>
 
         <div class="tree">
-            <div class="tree-level tree-level-root">
-                <div class="tree-node tree-root" onclick="showTreeInfo('revenue')">Выручка</div>
-            </div>
-            <div class="tree-connector">|</div>
             <div class="tree-level">
-                <div class="tree-node" onclick="showTreeInfo('visits')">Визиты</div>
-                <div class="tree-x">&times;</div>
+                <div class="tree-node tree-leaf" onclick="showTreeInfo('dau')">DAU</div>
+                <div class="tree-node tree-leaf" onclick="showTreeInfo('mau')">MAU</div>
+                <div class="tree-node tree-leaf" onclick="showTreeInfo('bounce')">Bounce Rate</div>
+                <div class="tree-node tree-leaf" onclick="showTreeInfo('time')">Время</div>
+            </div>
+            <div class="tree-connector">↓</div>
+            <div class="tree-level">
                 <div class="tree-node" onclick="showTreeInfo('cr')">CR</div>
+            </div>
+            <div class="tree-connector">↓</div>
+            <div class="tree-level">
+                <div class="tree-node" onclick="showTreeInfo('conversions')">Целевые действия</div>
                 <div class="tree-x">&times;</div>
                 <div class="tree-node" onclick="showTreeInfo('arpu')">ARPU</div>
             </div>
-            <div class="tree-connector">|</div>
-            <div class="tree-level">
-                <div class="tree-node tree-leaf" onclick="showTreeInfo('bounce')">Bounce Rate</div>
-                <div class="tree-node tree-leaf" onclick="showTreeInfo('time')">Время</div>
-                <div class="tree-node tree-leaf" onclick="showTreeInfo('depth')">Глубина</div>
-                <div class="tree-node tree-leaf" onclick="showTreeInfo('retention')">Retention</div>
+            <div class="tree-connector">↓</div>
+            <div class="tree-level tree-level-root">
+                <div class="tree-node tree-root" onclick="showTreeInfo('revenue')">Выручка</div>
             </div>
         </div>
 
