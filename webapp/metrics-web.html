@@ -3,13 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тренажёр метрик</title>
+    <title>Метрики сайта</title>
     <link rel="stylesheet" href="css/metrics.css">
 </head>
 <body>
-    <div class="trainer-header">
-        <h1>Тренажёр метрик</h1>
-        <p class="hint">Нажимайте на метрики, чтобы узнать что они значат. Проанализируйте дашборд и поставьте диагноз.</p>
+    <!-- ===== SECTION 1: Funnel ===== -->
+    <div class="section-block" id="section-funnel">
+        <div class="section-label">01</div>
+        <h2 class="section-title">Воронка сайта</h2>
+        <p class="section-desc">Каждый этап — потеря пользователей. Нажмите на этап, чтобы узнать ключевые метрики.</p>
+
+        <div class="funnel">
+            <div class="funnel-step" data-step="traffic" onclick="showFunnelInfo(this)">
+                <div class="funnel-bar" style="width:100%">
+                    <span class="funnel-label">Трафик</span>
+                    <span class="funnel-pct">100%</span>
+                </div>
+            </div>
+            <div class="funnel-step" data-step="engagement" onclick="showFunnelInfo(this)">
+                <div class="funnel-bar" style="width:65%">
+                    <span class="funnel-label">Вовлечение</span>
+                    <span class="funnel-pct">~60–70%</span>
+                </div>
+            </div>
+            <div class="funnel-step" data-step="action" onclick="showFunnelInfo(this)">
+                <div class="funnel-bar" style="width:25%">
+                    <span class="funnel-label">Целевое действие</span>
+                    <span class="funnel-pct">~1–5%</span>
+                </div>
+            </div>
+            <div class="funnel-step" data-step="retention" onclick="showFunnelInfo(this)">
+                <div class="funnel-bar" style="width:12%">
+                    <span class="funnel-label">Возврат</span>
+                    <span class="funnel-pct">~20–30%</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="funnel-info" class="funnel-info"></div>
+    </div>
+
+    <!-- ===== SECTION 2: Metrics Tree ===== -->
+    <div class="section-block" id="section-tree">
+        <div class="section-label">02</div>
+        <h2 class="section-title">Дерево метрик</h2>
+        <p class="section-desc">Метрики связаны между собой. Нажмите на любую, чтобы увидеть формулу и связи.</p>
+
+        <div class="tree">
+            <div class="tree-level tree-level-root">
+                <div class="tree-node tree-root" onclick="showTreeInfo('revenue')">Выручка</div>
+            </div>
+            <div class="tree-connector">|</div>
+            <div class="tree-level">
+                <div class="tree-node" onclick="showTreeInfo('visits')">Визиты</div>
+                <div class="tree-x">&times;</div>
+                <div class="tree-node" onclick="showTreeInfo('cr')">CR</div>
+                <div class="tree-x">&times;</div>
+                <div class="tree-node" onclick="showTreeInfo('arpu')">ARPU</div>
+            </div>
+            <div class="tree-connector">|</div>
+            <div class="tree-level">
+                <div class="tree-node tree-leaf" onclick="showTreeInfo('bounce')">Bounce Rate</div>
+                <div class="tree-node tree-leaf" onclick="showTreeInfo('time')">Время</div>
+                <div class="tree-node tree-leaf" onclick="showTreeInfo('depth')">Глубина</div>
+                <div class="tree-node tree-leaf" onclick="showTreeInfo('retention')">Retention</div>
+            </div>
+        </div>
+
+        <div id="tree-info" class="tree-info"></div>
+    </div>
+
+    <!-- ===== SECTION 3: Trainer ===== -->
+    <div class="section-block" id="section-trainer">
+        <div class="section-label">03</div>
+        <h2 class="section-title">Тренажёр</h2>
+        <p class="section-desc">Рандомный дашборд. Посмотрите на цифры, поставьте диагноз, проверьте себя.</p>
         <button class="btn-primary" id="btn-new-scenario">Новый сценарий</button>
     </div>
 
@@ -39,11 +107,12 @@
     <div id="hypothesis-block" class="hypothesis-block" style="display:none">
         <div class="hypothesis-title">Сформулируй гипотезу</div>
         <p class="hint">Формат: Если [действие], то [результат], потому что [причина]</p>
-        <textarea id="hypothesis-text" rows="3" placeholder="Если изменить заголовок объявления, то CTR вырастет на 30%, потому что текущий заголовок не содержит УТП..."></textarea>
+        <textarea id="hypothesis-text" rows="3" placeholder="Если упростить форму заявки, то конверсия вырастет, потому что сейчас пользователи бросают на третьем шаге..."></textarea>
         <button class="btn-primary btn-small" id="btn-save-hypothesis">Готово</button>
         <div id="hypothesis-result" class="hypothesis-result"></div>
     </div>
 
+    <script src="js/metrics-funnel.js"></script>
     <script src="js/metrics.js"></script>
 </body>
 </html>

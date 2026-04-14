@@ -1,17 +1,14 @@
-// --- Metrics Trainer v2 ---
+// --- Metrics Trainer v3 — General business focus ---
 
-// --- 1. Metric relationships (for tooltip links) ---
 var METRIC_LINKS = {
-    visits: "Смотри вместе с Bounce Rate и CR — много визитов при высоком bounce = нецелевой трафик.",
-    bounce: "Читай вместе с Временем на сайте. Высокий bounce + низкое время = проблема с посадочной или трафиком.",
-    time: "Читай вместе с Bounce Rate и Глубиной. Долго ≠ хорошо, если пользователь просто заблудился.",
-    ctr: "CTR влияет на CPC: выше CTR → Яндекс снижает ставку → дешевле клик.",
-    cpc: "CPC = f(CTR, конкуренция). Посмотри CTR — если он низкий, CPC будет расти.",
-    cr: "CPA = CPC ÷ CR. Если CR падает при нормальном CPC — проблема на сайте, не в рекламе.",
-    cpa: "CPA = CPC ÷ CR. Чтобы понять причину роста CPA, смотри CPC и CR по отдельности.",
-    ltv: "Сравни с CPA: если LTV < CPA, бизнес теряет деньги на каждом клиенте.",
-    retention: "Retention влияет на LTV: чем чаще возвращаются, тем выше пожизненная ценность.",
-    arpu: "ARPU × Retention = LTV. Низкий ARPU при хорошем retention можно поднять upsell'ом.",
+    visits: "Смотри вместе с Bounce Rate и CR — много визитов при высоком bounce = проблема с качеством трафика или сайтом.",
+    bounce: "Читай вместе с Временем и Глубиной. Высокий bounce + мало времени = страница не совпадает с ожиданием.",
+    time: "Читай вместе с Bounce Rate и Глубиной. Долго ≠ хорошо — может быть пользователь просто заблудился.",
+    depth: "Глубина 1 = bounce. Глубина 10+ = запутался. Норма для магазина: 3–5 страниц.",
+    cr: "Выручка = Визиты × CR × ARPU. Если CR падает — смотри bounce и время, чтобы понять где теряются.",
+    arpu: "ARPU × количество покупок = LTV. Низкий ARPU можно поднять upsell'ом и cross-sell'ом.",
+    ltv: "Сравни с расходами на привлечение. Если LTV < стоимость клиента — бизнес теряет деньги.",
+    retention: "Retention влияет на LTV: чем чаще возвращаются, тем больше заработаешь за жизнь клиента.",
 };
 
 var METRICS = [
@@ -21,11 +18,11 @@ var METRICS = [
         format: "number",
         goodDirection: "up",
         formula: "Количество сессий на сайте за период",
-        norms: "Зависит от бизнеса. Важно смотреть в динамике и сравнивать с уникальными пользователями.",
+        norms: "Зависит от бизнеса.\nВажно смотреть в динамике.\n1 человек = может быть несколько визитов.",
         interpret: function (val) {
             if (val > 40000) return val.toLocaleString("ru") + " — высокий трафик. Проверь качество: если bounce тоже высокий, трафик нецелевой.";
-            if (val < 10000) return val.toLocaleString("ru") + " — низкий трафик. Проверь рекламу и источники.";
-            return val.toLocaleString("ru") + " — нормальный уровень трафика.";
+            if (val < 10000) return val.toLocaleString("ru") + " — мало трафика. Нужно работать с источниками.";
+            return val.toLocaleString("ru") + " — нормальный уровень.";
         },
     },
     {
@@ -36,7 +33,7 @@ var METRICS = [
         formula: "Bounce Rate = ушли без действия / все визиты × 100%",
         norms: "< 40% — отлично\n40–60% — норма для блогов\n> 60% — сигнал тревоги",
         interpret: function (val) {
-            if (val > 60) return val + "% — тревога. Проверь посадочную страницу или качество трафика.";
+            if (val > 60) return val + "% — тревога. Пользователи уходят, не сделав ничего.";
             if (val > 40) return val + "% — норма, но следи за динамикой.";
             return val + "% — отлично, пользователи вовлечены.";
         },
@@ -47,7 +44,7 @@ var METRICS = [
         format: "time",
         goodDirection: "up",
         formula: "Среднее время сессии пользователя",
-        norms: "Зависит от типа сайта.\nМагазин: 2–4 мин\nБлог: 3–5 мин\n< 30 сек — проблема",
+        norms: "Магазин: 2–4 мин\nБлог: 3–5 мин\n< 30 сек — проблема",
         interpret: function (val) {
             if (val < 30) return formatTime(val) + " — критически мало. Контент не совпадает с ожиданием.";
             if (val < 60) return formatTime(val) + " — мало. Пользователь не находит нужное.";
@@ -56,29 +53,17 @@ var METRICS = [
         },
     },
     {
-        id: "ctr",
-        name: "CTR",
-        format: "percent_decimal",
+        id: "depth",
+        name: "Глубина",
+        format: "number_decimal",
         goodDirection: "up",
-        formula: "CTR = клики / показы × 100%",
-        norms: "Поиск Яндекс: 5–10% хорошо\nМедийная реклама: 0.3–1% норма\nПоиск < 1% — плохой заголовок",
+        formula: "Среднее количество просмотренных страниц за визит",
+        norms: "Магазин: 3–5 страниц\nБлог: 1.5–3\nЛендинг: 1–2\nГлубина 1 = bounce",
         interpret: function (val) {
-            if (val < 1) return val.toFixed(1) + "% — низкий. Объявление не цепляет. Меняй заголовок, не бюджет.";
-            if (val < 5) return val.toFixed(1) + "% — средний. Есть потенциал для улучшения.";
-            return val.toFixed(1) + "% — хороший CTR.";
-        },
-    },
-    {
-        id: "cpc",
-        name: "CPC",
-        format: "currency",
-        goodDirection: "down",
-        formula: "CPC = расходы на рекламу / число кликов",
-        norms: "Зависит от ниши.\nE-commerce: ₽30–80\nНедвижимость: ₽100–300\nB2B: ₽80–200",
-        interpret: function (val) {
-            if (val > 150) return "₽" + val + " — дорого. Улучши релевантность, подними CTR.";
-            if (val > 80) return "₽" + val + " — средний. Проверь конкурентов в аукционе.";
-            return "₽" + val + " — хорошая цена клика.";
+            if (val < 1.5) return val.toFixed(1) + " стр. — мало. Пользователи не идут дальше первой страницы.";
+            if (val < 4) return val.toFixed(1) + " стр. — нормально для магазина.";
+            if (val < 8) return val.toFixed(1) + " стр. — хорошая вовлечённость.";
+            return val.toFixed(1) + " стр. — очень много. Возможно, навигация запутанная.";
         },
     },
     {
@@ -89,53 +74,10 @@ var METRICS = [
         formula: "CR = целевые действия / визиты × 100%",
         norms: "E-commerce: 1–3%\nЛидогенерация: 3–7%\nSaaS: 2–5%\n< 1% — проблема с воронкой",
         interpret: function (val) {
-            if (val < 0.5) return val.toFixed(1) + "% — критически низкая. Воронка сломана: проверь CTA, оффер, форму.";
-            if (val < 1) return val.toFixed(1) + "% — низкая. Есть проблемы с конверсией на сайте.";
+            if (val < 0.5) return val.toFixed(1) + "% — критически низкая. Воронка сломана.";
+            if (val < 1) return val.toFixed(1) + "% — низкая. Проблемы с конверсией.";
             if (val < 3) return val.toFixed(1) + "% — нормальная для e-commerce.";
             return val.toFixed(1) + "% — хорошая конверсия.";
-        },
-    },
-    {
-        id: "cpa",
-        name: "CPA",
-        format: "currency",
-        goodDirection: "down",
-        formula: "CPA = расходы / целевые действия\nТакже: CPA = CPC ÷ CR",
-        norms: "Покупка: ₽500–2000\nЗвонок: ₽200–500\nЗаявка: ₽100–300\nВсегда сравнивай с LTV.",
-        interpret: function (val) {
-            if (val > 5000) return "₽" + val.toLocaleString("ru") + " — критически дорого. Проблема в воронке или в рекламе.";
-            if (val > 2000) return "₽" + val.toLocaleString("ru") + " — высокий. Проверь конверсию на сайте.";
-            return "₽" + val.toLocaleString("ru") + " — в пределах нормы.";
-        },
-    },
-    // --- Business metrics (LTV, Retention, ARPU) ---
-    {
-        id: "ltv",
-        name: "LTV",
-        format: "currency",
-        goodDirection: "up",
-        formula: "LTV = ARPU × среднее кол-во покупок за жизнь клиента",
-        norms: "E-commerce: ₽3 000–15 000\nSaaS: ₽10 000–100 000\nLTV должен быть > CPA минимум в 3 раза.",
-        interpret: function (val) {
-            var cpa = currentValues["cpa"] || 1;
-            var ratio = (val / cpa).toFixed(1);
-            if (val / cpa < 1) return "₽" + val.toLocaleString("ru") + " — LTV/CPA = " + ratio + "x. Убыток: клиент стоит дороже, чем приносит.";
-            if (val / cpa < 3) return "₽" + val.toLocaleString("ru") + " — LTV/CPA = " + ratio + "x. Маржинально, но рискованно.";
-            return "₽" + val.toLocaleString("ru") + " — LTV/CPA = " + ratio + "x. Здоровая экономика.";
-        },
-    },
-    {
-        id: "retention",
-        name: "Retention 30d",
-        format: "percent",
-        goodDirection: "up",
-        formula: "% пользователей, вернувшихся на сайт в течение 30 дней",
-        norms: "E-commerce: 20–35%\nSaaS: 40–60%\nМедиа: 30–50%\n< 15% — серьёзная проблема с продуктом",
-        interpret: function (val) {
-            if (val < 15) return val + "% — критически низкий. Пользователи не возвращаются — проблема с продуктом или ценностью.";
-            if (val < 25) return val + "% — ниже нормы. Проверь email/push, программу лояльности.";
-            if (val < 40) return val + "% — нормальный для e-commerce.";
-            return val + "% — отличный retention.";
         },
     },
     {
@@ -144,141 +86,157 @@ var METRICS = [
         format: "currency",
         goodDirection: "up",
         formula: "ARPU = выручка / кол-во пользователей за период",
-        norms: "Зависит от бизнеса.\nE-commerce: ₽500–3 000\nSaaS: ₽1 000–10 000\nНизкий ARPU можно поднять upsell'ом.",
+        norms: "E-commerce: ₽500–3 000\nSaaS: ₽1 000–10 000\nНизкий ARPU → upsell, cross-sell.",
         interpret: function (val) {
-            if (val < 500) return "₽" + val + " — низкий. Подумай про upsell, cross-sell, повышение среднего чека.";
-            if (val < 2000) return "₽" + val.toLocaleString("ru") + " — средний. Есть потенциал для роста.";
+            if (val < 500) return "₽" + val + " — низкий. Нужно работать над средним чеком.";
+            if (val < 2000) return "₽" + val.toLocaleString("ru") + " — средний. Есть потенциал.";
             return "₽" + val.toLocaleString("ru") + " — хороший ARPU.";
+        },
+    },
+    {
+        id: "ltv",
+        name: "LTV",
+        format: "currency",
+        goodDirection: "up",
+        formula: "LTV = ARPU × среднее кол-во покупок за жизнь клиента",
+        norms: "E-commerce: ₽3 000–15 000\nSaaS: ₽10 000–100 000\nLTV должен быть > стоимости привлечения.",
+        interpret: function (val) {
+            if (val < 3000) return "₽" + val.toLocaleString("ru") + " — низкий. Клиенты не возвращаются или мало тратят.";
+            if (val < 8000) return "₽" + val.toLocaleString("ru") + " — средний. Работай над retention.";
+            return "₽" + val.toLocaleString("ru") + " — хороший LTV.";
+        },
+    },
+    {
+        id: "retention",
+        name: "Retention 30d",
+        format: "percent",
+        goodDirection: "up",
+        formula: "% пользователей, вернувшихся в течение 30 дней",
+        norms: "E-commerce: 20–35%\nSaaS: 40–60%\nМедиа: 30–50%\n< 15% — проблема с продуктом",
+        interpret: function (val) {
+            if (val < 15) return val + "% — критически низкий. Пользователи не возвращаются.";
+            if (val < 25) return val + "% — ниже нормы. Нужно работать над лояльностью.";
+            if (val < 40) return val + "% — нормальный для e-commerce.";
+            return val + "% — отличный retention.";
         },
     },
 ];
 
+// --- Simplified general business scenarios ---
+
 var SCENARIOS = [
     {
-        type: "irrelevant_traffic",
-        title: "Нерелевантный трафик",
+        type: "traffic_quality",
+        title: "Проблема с качеством трафика",
         diagnosis:
             "Трафик высокий, но пользователи уходят мгновенно.\n\n" +
-            "Проблема: источники трафика нецелевые — ключевые слова слишком широкие или объявление не совпадает с посадочной страницей.\n\n" +
-            "Что делать:\n• Проверь UTM-метки и источники трафика\n• Посмотри Вебвизор — где пользователи уходят\n• Сравни текст объявления с содержанием страницы\n• Добавь минус-слова в рекламу",
-        forecast: "Если не менять: бюджет продолжит сливаться на нецелевой трафик. CPA будет расти на 15–20% каждую неделю, пока не закончится бюджет.",
+            "Проблема: на сайт приходят не те люди. Источники трафика нецелевые — сайт привлекает не свою аудиторию.\n\n" +
+            "Что делать:\n• Проанализируй источники трафика — откуда приходят\n• Сравни контент сайта с ожиданиями аудитории\n• Посмотри какие страницы открывают первыми\n• Проверь, что первый экран отвечает на вопрос «зачем я тут?»",
+        forecast: "Если не менять: сайт будет получать много визитов, но без конверсий. Расходы растут, доходы нет.",
         ranges: {
             visits: { min: 30000, max: 60000, deltaMin: 20, deltaMax: 40 },
-            bounce: { min: 60, max: 80, deltaMin: 15, deltaMax: 25 },
-            time: { min: 15, max: 45, deltaMin: -60, deltaMax: -40 },
-            ctr: { min: 3, max: 8, deltaMin: -5, deltaMax: 5 },
-            cpc: { min: 40, max: 90, deltaMin: -10, deltaMax: 15 },
-            cr: { min: 0.3, max: 0.8, deltaMin: -60, deltaMax: -30 },
-            cpa: { min: 3000, max: 6000, deltaMin: 80, deltaMax: 150 },
-            ltv: { min: 4000, max: 8000, deltaMin: -5, deltaMax: 5 },
-            retention: { min: 20, max: 35, deltaMin: -10, deltaMax: 5 },
+            bounce: { min: 65, max: 85, deltaMin: 15, deltaMax: 30 },
+            time: { min: 10, max: 35, deltaMin: -65, deltaMax: -40 },
+            depth: { min: 1.0, max: 1.4, deltaMin: -50, deltaMax: -30 },
+            cr: { min: 0.2, max: 0.6, deltaMin: -60, deltaMax: -35 },
             arpu: { min: 800, max: 2000, deltaMin: -5, deltaMax: 5 },
-        },
-    },
-    {
-        type: "bad_ad",
-        title: "Плохое объявление",
-        diagnosis:
-            "CTR упал — объявление не привлекает клики.\n\n" +
-            "Проблема: заголовок не цепляет аудиторию, нет конкретики или УТП. Конкуренты выглядят лучше в поиске.\n\n" +
-            "Что делать:\n• Измени заголовок — добавь цену, срок, выгоду\n• Добавь быстрые ссылки и расширения\n• Посмотри объявления конкурентов\n• Проверь: может быть запрос слишком широкий",
-        forecast: "Если не менять: показы останутся, но кликов будет всё меньше. CPC продолжит расти, бюджет будет тратиться на показы без переходов.",
-        ranges: {
-            visits: { min: 5000, max: 15000, deltaMin: -50, deltaMax: -30 },
-            bounce: { min: 30, max: 45, deltaMin: -5, deltaMax: 5 },
-            time: { min: 90, max: 180, deltaMin: -10, deltaMax: 10 },
-            ctr: { min: 0.2, max: 0.8, deltaMin: -70, deltaMax: -50 },
-            cpc: { min: 100, max: 200, deltaMin: 40, deltaMax: 80 },
-            cr: { min: 1.5, max: 3, deltaMin: -10, deltaMax: 10 },
-            cpa: { min: 4000, max: 8000, deltaMin: 100, deltaMax: 200 },
-            ltv: { min: 5000, max: 12000, deltaMin: -5, deltaMax: 5 },
-            retention: { min: 25, max: 40, deltaMin: -5, deltaMax: 5 },
-            arpu: { min: 1000, max: 2500, deltaMin: -5, deltaMax: 5 },
+            ltv: { min: 2000, max: 5000, deltaMin: -10, deltaMax: 5 },
+            retention: { min: 8, max: 15, deltaMin: -30, deltaMax: -10 },
         },
     },
     {
         type: "broken_funnel",
         title: "Сломанная воронка",
         diagnosis:
-            "Трафик нормальный, конверсия на нуле.\n\n" +
-            "Проблема: реклама работает, пользователи приходят, но на сайте что-то ломает конверсию — плохой CTA, непонятный оффер, длинная форма.\n\n" +
-            "Что делать:\n• A/B тест CTA-кнопки и оффера\n• Упрости форму заявки\n• Проверь путь пользователя через Вебвизор\n• НЕ трогай ставки — проблема не в рекламе",
-        forecast: "Если не менять: при бюджете ₽18 000/день через 2 недели вы потратите ₽252 000 почти без конверсий. CPA уйдёт за ₽15 000.",
+            "Пользователи приходят, смотрят, но не покупают.\n\n" +
+            "Проблема: сайт вовлекает, но не конвертирует. Скорее всего проблема с CTA, оффером, ценой или формой заявки.\n\n" +
+            "Что делать:\n• Проверь: понятно ли что делать на сайте за 5 секунд?\n• CTA виден без скролла?\n• Сколько шагов до целевого действия?\n• Попробуй A/B тест заголовка и кнопки",
+        forecast: "Если не менять: трафик есть, время на сайте нормальное, но выручка стоит на месте. Каждый день теряешь потенциальных клиентов.",
         ranges: {
             visits: { min: 20000, max: 35000, deltaMin: 5, deltaMax: 15 },
             bounce: { min: 30, max: 45, deltaMin: -5, deltaMax: 5 },
-            time: { min: 90, max: 180, deltaMin: -10, deltaMax: 10 },
-            ctr: { min: 3, max: 8, deltaMin: -5, deltaMax: 5 },
-            cpc: { min: 40, max: 90, deltaMin: -10, deltaMax: 10 },
-            cr: { min: 0.2, max: 0.6, deltaMin: -70, deltaMax: -50 },
-            cpa: { min: 5000, max: 10000, deltaMin: 100, deltaMax: 200 },
-            ltv: { min: 5000, max: 10000, deltaMin: -5, deltaMax: 5 },
-            retention: { min: 25, max: 40, deltaMin: -5, deltaMax: 5 },
+            time: { min: 120, max: 240, deltaMin: -5, deltaMax: 10 },
+            depth: { min: 3.0, max: 6.0, deltaMin: -5, deltaMax: 10 },
+            cr: { min: 0.2, max: 0.5, deltaMin: -70, deltaMax: -45 },
             arpu: { min: 1000, max: 2500, deltaMin: -5, deltaMax: 5 },
-        },
-    },
-    {
-        type: "audience_burnout",
-        title: "Выгоревшая аудитория",
-        diagnosis:
-            "Все метрики ухудшаются одновременно.\n\n" +
-            "Проблема: аудитория видела рекламу слишком много раз, устала. Частотность показов высокая, креативы приелись.\n\n" +
-            "Что делать:\n• Обнови креативы — новые картинки, заголовки, офферы\n• Расширь таргетинг на новые сегменты\n• Попробуй новые каналы (РСЯ, соцсети)\n• Проверь частотность показов",
-        forecast: "Если не менять: аудитория полностью выгорит за 3–4 недели. CTR упадёт ниже 0.5%, CPC вырастет в 2 раза, реклама станет убыточной.",
-        ranges: {
-            visits: { min: 10000, max: 20000, deltaMin: -40, deltaMax: -20 },
-            bounce: { min: 45, max: 65, deltaMin: 10, deltaMax: 20 },
-            time: { min: 40, max: 80, deltaMin: -40, deltaMax: -20 },
-            ctr: { min: 1, max: 3, deltaMin: -50, deltaMax: -30 },
-            cpc: { min: 80, max: 150, deltaMin: 30, deltaMax: 60 },
-            cr: { min: 0.5, max: 1.2, deltaMin: -40, deltaMax: -20 },
-            cpa: { min: 3000, max: 7000, deltaMin: 60, deltaMax: 120 },
-            ltv: { min: 4000, max: 8000, deltaMin: -15, deltaMax: -5 },
-            retention: { min: 15, max: 25, deltaMin: -25, deltaMax: -10 },
-            arpu: { min: 600, max: 1500, deltaMin: -20, deltaMax: -5 },
+            ltv: { min: 4000, max: 8000, deltaMin: -5, deltaMax: 5 },
+            retention: { min: 25, max: 40, deltaMin: -5, deltaMax: 5 },
         },
     },
     {
         type: "landing_problem",
-        title: "Проблема с посадочной",
+        title: "Проблема с первым экраном",
         diagnosis:
-            "Реклама работает, но страница не удерживает.\n\n" +
-            "Проблема: объявление релевантное (CTR в норме), но посадочная страница разочаровывает — медленно грузится, контент не совпадает с ожиданием, плохой мобильный UX.\n\n" +
-            "Что делать:\n• Проверь скорость загрузки (PageSpeed)\n• Сравни заголовок объявления с заголовком страницы\n• Проверь мобильную версию\n• Добавь элементы доверия (отзывы, рейтинг)",
-        forecast: "Если не менять: каждый день теряешь 70–85% трафика на первом экране. При CPC ₽60 и 30 000 визитов — это ₽1.2 млн/мес впустую.",
+            "Люди приходят и сразу уходят — первый экран не работает.\n\n" +
+            "Проблема: посадочная страница не удерживает. Медленная загрузка, контент не совпадает с ожиданием, плохой мобильный UX.\n\n" +
+            "Что делать:\n• Проверь скорость загрузки (PageSpeed)\n• Совпадает ли заголовок с тем, откуда пришёл пользователь?\n• Проверь мобильную версию\n• Добавь элементы доверия (отзывы, кейсы)",
+        forecast: "Если не менять: 70–85% трафика теряется на первом экране. Это прямые потери.",
         ranges: {
             visits: { min: 20000, max: 40000, deltaMin: 5, deltaMax: 15 },
-            bounce: { min: 65, max: 85, deltaMin: 20, deltaMax: 35 },
-            time: { min: 10, max: 30, deltaMin: -70, deltaMax: -50 },
-            ctr: { min: 3, max: 8, deltaMin: -5, deltaMax: 5 },
-            cpc: { min: 40, max: 90, deltaMin: -10, deltaMax: 10 },
-            cr: { min: 0.3, max: 0.8, deltaMin: -60, deltaMax: -40 },
-            cpa: { min: 3000, max: 6000, deltaMin: 80, deltaMax: 140 },
-            ltv: { min: 4000, max: 8000, deltaMin: -5, deltaMax: 5 },
-            retention: { min: 10, max: 20, deltaMin: -30, deltaMax: -10 },
-            arpu: { min: 500, max: 1200, deltaMin: -10, deltaMax: 5 },
+            bounce: { min: 70, max: 90, deltaMin: 20, deltaMax: 35 },
+            time: { min: 8, max: 25, deltaMin: -70, deltaMax: -50 },
+            depth: { min: 1.0, max: 1.3, deltaMin: -60, deltaMax: -40 },
+            cr: { min: 0.1, max: 0.4, deltaMin: -65, deltaMax: -45 },
+            arpu: { min: 800, max: 1500, deltaMin: -5, deltaMax: 5 },
+            ltv: { min: 2000, max: 4000, deltaMin: -5, deltaMax: 5 },
+            retention: { min: 5, max: 12, deltaMin: -35, deltaMax: -15 },
         },
     },
-    // --- 6. New scenario: Market CPC growth ---
     {
-        type: "market_cpc_growth",
-        title: "Рыночный рост CPC",
+        type: "retention_problem",
+        title: "Проблема с удержанием",
         diagnosis:
-            "CPC вырос, но проблема не в тебе — рынок перегрет.\n\n" +
-            "Проблема: аукцион разогнан конкурентами, медиаинфляция. Твои объявления работают нормально (CTR в норме), но клики стали дороже для всех.\n\n" +
-            "Что делать:\n• Не паникуй и не режь бюджет — это рыночный тренд\n• Расширь семантику на менее конкурентные запросы\n• Попробуй РСЯ и другие форматы\n• Считай юнит-экономику: если LTV > CPA × 3, можно продолжать\n• Инвестируй в SEO и органику — снижай зависимость от платного трафика",
-        forecast: "Если не менять: CPC продолжит расти с рынком (~5–10% в квартал). Без диверсификации каналов маржинальность будет снижаться.",
+            "Конверсия нормальная, но клиенты не возвращаются.\n\n" +
+            "Проблема: продукт/сервис не создаёт привычку. Клиенты покупают один раз и уходят. LTV низкий.\n\n" +
+            "Что делать:\n• Проверь email/push-коммуникации после покупки\n• Есть ли программа лояльности?\n• Есть ли повод вернуться (новинки, акции, контент)?\n• Сравни retention по сегментам — где теряем?",
+        forecast: "Если не менять: бизнес будет постоянно тратить на привлечение новых, не зарабатывая на повторных. Юнит-экономика не сойдётся.",
         ranges: {
-            visits: { min: 18000, max: 30000, deltaMin: -15, deltaMax: -5 },
+            visits: { min: 15000, max: 30000, deltaMin: -15, deltaMax: 5 },
             bounce: { min: 30, max: 45, deltaMin: -5, deltaMax: 5 },
-            time: { min: 90, max: 180, deltaMin: -5, deltaMax: 10 },
-            ctr: { min: 4, max: 8, deltaMin: -5, deltaMax: 5 },
-            cpc: { min: 120, max: 250, deltaMin: 35, deltaMax: 70 },
-            cr: { min: 1.5, max: 3, deltaMin: -10, deltaMax: 5 },
-            cpa: { min: 2500, max: 5000, deltaMin: 30, deltaMax: 70 },
-            ltv: { min: 8000, max: 15000, deltaMin: -5, deltaMax: 5 },
+            time: { min: 90, max: 180, deltaMin: -10, deltaMax: 10 },
+            depth: { min: 3.0, max: 5.0, deltaMin: -5, deltaMax: 5 },
+            cr: { min: 1.5, max: 3.5, deltaMin: -10, deltaMax: 5 },
+            arpu: { min: 600, max: 1200, deltaMin: -15, deltaMax: -5 },
+            ltv: { min: 1500, max: 3000, deltaMin: -40, deltaMax: -20 },
+            retention: { min: 5, max: 12, deltaMin: -50, deltaMax: -25 },
+        },
+    },
+    {
+        type: "low_arpu",
+        title: "Низкий средний чек",
+        diagnosis:
+            "Конверсия есть, retention нормальный, но выручка не растёт.\n\n" +
+            "Проблема: пользователи покупают, но мало тратят. Средний чек низкий, upsell не работает.\n\n" +
+            "Что делать:\n• Проверь: есть ли блоки «С этим покупают» / «Вам понравится»?\n• Есть ли пороги бесплатной доставки?\n• Работает ли рекомендательная система?\n• Попробуй бандлы и комплекты",
+        forecast: "Если не менять: при текущем ARPU выручка растёт только за счёт трафика. Это дорого и не масштабируется.",
+        ranges: {
+            visits: { min: 20000, max: 35000, deltaMin: 5, deltaMax: 15 },
+            bounce: { min: 30, max: 42, deltaMin: -5, deltaMax: 5 },
+            time: { min: 120, max: 200, deltaMin: -5, deltaMax: 10 },
+            depth: { min: 4.0, max: 7.0, deltaMin: 5, deltaMax: 15 },
+            cr: { min: 2.0, max: 4.0, deltaMin: -5, deltaMax: 10 },
+            arpu: { min: 300, max: 600, deltaMin: -25, deltaMax: -10 },
+            ltv: { min: 1500, max: 3500, deltaMin: -20, deltaMax: -5 },
             retention: { min: 25, max: 40, deltaMin: -5, deltaMax: 5 },
-            arpu: { min: 1200, max: 3000, deltaMin: -5, deltaMax: 5 },
+        },
+    },
+    {
+        type: "everything_declining",
+        title: "Общий спад",
+        diagnosis:
+            "Все метрики ухудшаются одновременно.\n\n" +
+            "Проблема: это может быть сезонность, устаревший продукт, или конкуренты перехватили аудиторию.\n\n" +
+            "Что делать:\n• Сравни с прошлым годом — это сезонность?\n• Посмотри конкурентов — что они изменили?\n• Проверь технические проблемы (скорость, ошибки)\n• Проанализируй: когда начался спад и что изменилось?",
+        forecast: "Если не менять: тренд продолжится. Без диагностики причины любые действия будут случайными.",
+        ranges: {
+            visits: { min: 8000, max: 18000, deltaMin: -35, deltaMax: -15 },
+            bounce: { min: 50, max: 70, deltaMin: 10, deltaMax: 25 },
+            time: { min: 40, max: 90, deltaMin: -35, deltaMax: -15 },
+            depth: { min: 1.5, max: 3.0, deltaMin: -30, deltaMax: -10 },
+            cr: { min: 0.4, max: 1.0, deltaMin: -45, deltaMax: -20 },
+            arpu: { min: 500, max: 1200, deltaMin: -20, deltaMax: -5 },
+            ltv: { min: 2000, max: 5000, deltaMin: -30, deltaMax: -10 },
+            retention: { min: 10, max: 20, deltaMin: -30, deltaMax: -10 },
         },
     },
 ];
@@ -302,6 +260,7 @@ function formatTime(seconds) {
 
 function formatValue(metric, value) {
     if (metric.format === "number") return value.toLocaleString("ru");
+    if (metric.format === "number_decimal") return value.toFixed(1);
     if (metric.format === "percent") return value + "%";
     if (metric.format === "percent_decimal") return value.toFixed(1) + "%";
     if (metric.format === "time") return formatTime(value);
@@ -336,7 +295,7 @@ function generateScenario() {
 
     METRICS.forEach(function (metric) {
         var range = currentScenario.ranges[metric.id];
-        if (metric.format === "percent_decimal") {
+        if (metric.format === "percent_decimal" || metric.format === "number_decimal") {
             currentValues[metric.id] = randFloat(range.min, range.max, 1);
         } else {
             currentValues[metric.id] = randBetween(range.min, range.max);
@@ -382,7 +341,7 @@ function renderDashboard() {
     });
 }
 
-// --- Tooltips with metric links ---
+// --- Tooltips ---
 
 function showTooltip(metric, cardEl) {
     closeTooltip();
@@ -420,7 +379,7 @@ document.addEventListener("click", function () {
     closeTooltip();
 });
 
-// --- 2. Thinking Model hint ---
+// --- Hint ---
 
 function showHint() {
     document.getElementById("hint-content").style.display = "block";
@@ -432,7 +391,7 @@ function hideHint() {
     document.getElementById("btn-show-hint").style.display = "block";
 }
 
-// --- Diagnosis with forecast ---
+// --- Diagnosis ---
 
 function showDiagnosis() {
     var diagnosisText = currentScenario.diagnosis;
@@ -443,8 +402,6 @@ function showDiagnosis() {
     block.textContent = diagnosisText;
     block.style.display = "block";
     document.getElementById("btn-show-diagnosis").style.display = "none";
-
-    // Show hypothesis form after diagnosis
     document.getElementById("hypothesis-block").style.display = "block";
 }
 
@@ -453,7 +410,7 @@ function hideDiagnosis() {
     document.getElementById("btn-show-diagnosis").style.display = "block";
 }
 
-// --- 5. Hypothesis form ---
+// --- Hypothesis ---
 
 function hideHypothesis() {
     var block = document.getElementById("hypothesis-block");
@@ -468,7 +425,7 @@ function saveHypothesis() {
     var text = document.getElementById("hypothesis-text").value.trim();
     if (!text) return;
     var result = document.getElementById("hypothesis-result");
-    result.textContent = "Гипотеза сохранена. Обсуди её с преподавателем на следующем занятии.";
+    result.textContent = "Гипотеза сохранена. Обсуди её с преподавателем.";
     result.style.display = "block";
 }
 
