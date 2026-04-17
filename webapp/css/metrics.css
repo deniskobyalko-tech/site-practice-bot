@@ -484,26 +484,38 @@ body {
 }
 
 .funnel-bar {
-    background: var(--card);
+    background: var(--slide-bg);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 18px 22px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+.funnel-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    background: var(--card);
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
     transition: background 0.2s;
+    z-index: 0;
 }
 
 .funnel-step:hover .funnel-bar,
 .funnel-step.active .funnel-bar {
-    background: var(--red);
-    color: var(--white);
+    border-color: var(--red);
 }
 
-.funnel-step:hover .funnel-label,
-.funnel-step.active .funnel-label,
-.funnel-step:hover .funnel-pct,
-.funnel-step.active .funnel-pct {
-    color: var(--white);
+.funnel-step:hover .funnel-fill,
+.funnel-step.active .funnel-fill {
+    background: var(--red);
 }
 
 .funnel-label {
@@ -511,12 +523,16 @@ body {
     font-weight: 700;
     color: var(--text);
     letter-spacing: -0.3px;
+    position: relative;
+    z-index: 1;
 }
 
 .funnel-pct {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-muted);
+    position: relative;
+    z-index: 1;
 }
 
 .funnel-info,
