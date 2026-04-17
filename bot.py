@@ -19,10 +19,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
         ])
     else:
-        text = "Бот отдыхает 😴\nПрактика временно закрыта.\n\nНо тренажёр метрик доступен:"
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
-        ])
+        conn: aiosqlite.Connection = context.bot_data["db_conn"]
+        paused = await is_paused(conn)
+        if paused:
+            text = "Бот отдыхает 😴\nПрактика временно закрыта.\n\nНо тренажёр метрик доступен:"
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
+            ])
+        else:
+            text = "Практика: Метрики сайта\n\nВыбери что открыть:"
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("Пройти тест по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
+                [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
+            ])
     await update.message.reply_text(text, reply_markup=keyboard)
 
 
