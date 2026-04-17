@@ -286,6 +286,7 @@ var currentScenario = null;
 var currentValues = {};
 var currentDeltas = {};
 var activeTooltip = null;
+var activeTooltipCard = null;
 
 // --- Generate ---
 
@@ -364,14 +365,20 @@ function showTooltip(metric, cardEl) {
     });
 
     cardEl.style.position = "relative";
+    cardEl.classList.add("tooltip-open");
     cardEl.appendChild(tooltip);
     activeTooltip = tooltip;
+    activeTooltipCard = cardEl;
 }
 
 function closeTooltip() {
     if (activeTooltip) {
         activeTooltip.remove();
         activeTooltip = null;
+    }
+    if (activeTooltipCard) {
+        activeTooltipCard.classList.remove("tooltip-open");
+        activeTooltipCard = null;
     }
 }
 
