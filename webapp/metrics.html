@@ -55,45 +55,10 @@
         <p class="section-desc">Метрики связаны между собой. Нажмите на любую, чтобы увидеть формулу и связи.</p>
 
         <div class="tree">
-            <!-- Level 0: Revenue -->
-            <div class="tree-level tree-level-root">
-                <div class="tree-node tree-root" data-key="revenue" onclick="showTreeInfo('revenue')">Выручка</div>
-            </div>
-            <div class="tree-connector">=</div>
-
-            <!-- Level 1: Orders × AOV -->
-            <div class="tree-level">
-                <div class="tree-node" data-key="orders" onclick="showTreeInfo('orders')">Заказы</div>
-                <div class="tree-x">&times;</div>
-                <div class="tree-node" data-key="aov" onclick="showTreeInfo('aov')">Средний чек</div>
-            </div>
-            <div class="tree-connector">=</div>
-
-            <!-- Level 2: DAU × CR -->
-            <div class="tree-level">
-                <div class="tree-node" data-key="dau" onclick="showTreeInfo('dau')">DAU</div>
-                <div class="tree-x">&times;</div>
-                <div class="tree-node" data-key="cr" onclick="showTreeInfo('cr')">CR</div>
-            </div>
-
-            <!-- Divider -->
+            <!-- Traffic sources → DAU -->
             <div class="tree-divider">
-                <span>влияют на CR</span>
+                <span>формируют DAU</span>
             </div>
-
-            <!-- Level 3: Behavioral metrics -->
-            <div class="tree-level">
-                <div class="tree-node tree-leaf" data-key="bounce" onclick="showTreeInfo('bounce')">Bounce Rate</div>
-                <div class="tree-node tree-leaf" data-key="time" onclick="showTreeInfo('time')">Время</div>
-                <div class="tree-node tree-leaf" data-key="depth" onclick="showTreeInfo('depth')">Глубина</div>
-            </div>
-
-            <!-- Divider -->
-            <div class="tree-divider">
-                <span>влияют на DAU</span>
-            </div>
-
-            <!-- Level 4: Traffic sources -->
             <div class="tree-level">
                 <div class="tree-node tree-leaf" data-key="organic" onclick="showTreeInfo('organic')">Органика</div>
                 <div class="tree-node tree-leaf" data-key="paid" onclick="showTreeInfo('paid')">Реклама</div>
@@ -101,7 +66,42 @@
                 <div class="tree-node tree-leaf" data-key="referral" onclick="showTreeInfo('referral')">Реферал</div>
             </div>
 
-            <!-- Side branch: Retention → LTV -->
+            <!-- Behavioral → CR -->
+            <div class="tree-divider">
+                <span>влияют на CR</span>
+            </div>
+            <div class="tree-level">
+                <div class="tree-node tree-leaf" data-key="bounce" onclick="showTreeInfo('bounce')">Bounce Rate</div>
+                <div class="tree-node tree-leaf" data-key="time" onclick="showTreeInfo('time')">Время</div>
+                <div class="tree-node tree-leaf" data-key="depth" onclick="showTreeInfo('depth')">Глубина</div>
+            </div>
+
+            <div class="tree-divider">
+                <span>формула</span>
+            </div>
+
+            <!-- DAU × CR -->
+            <div class="tree-level">
+                <div class="tree-node" data-key="dau" onclick="showTreeInfo('dau')">DAU</div>
+                <div class="tree-x">&times;</div>
+                <div class="tree-node" data-key="cr" onclick="showTreeInfo('cr')">CR</div>
+            </div>
+            <div class="tree-connector">=</div>
+
+            <!-- Orders × AOV -->
+            <div class="tree-level">
+                <div class="tree-node" data-key="orders" onclick="showTreeInfo('orders')">Заказы</div>
+                <div class="tree-x">&times;</div>
+                <div class="tree-node" data-key="aov" onclick="showTreeInfo('aov')">Средний чек</div>
+            </div>
+            <div class="tree-connector">=</div>
+
+            <!-- Revenue -->
+            <div class="tree-level tree-level-root">
+                <div class="tree-node tree-root" data-key="revenue" onclick="showTreeInfo('revenue')">Выручка</div>
+            </div>
+
+            <!-- Long-term -->
             <div class="tree-divider">
                 <span>долгосрочные</span>
             </div>
