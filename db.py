@@ -46,6 +46,16 @@ CREATE TABLE IF NOT EXISTS quiz_submissions (
     submitted_at TEXT NOT NULL,
     UNIQUE(student_id)
 );
+
+CREATE TABLE IF NOT EXISTS express_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL REFERENCES students(id),
+    topic TEXT NOT NULL,
+    step INTEGER NOT NULL CHECK(step IN (1, 2, 3)),
+    answers TEXT NOT NULL,
+    submitted_at TEXT NOT NULL,
+    UNIQUE(student_id, step)
+);
 """
 
 
@@ -249,4 +259,97 @@ async def get_quiz_submissions_all(conn, group: str = None):
 
 async def delete_quiz_submission(conn, student_id: int):
     await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student_id,))
+    await conn.commit()
+
+
+# --- Express practice ("Практика на пару") ---
+
+async def get_express_topic(conn, student_id: int) -> str | None:
+    """Topic the student has locked in by saving at least one step. None if not started."""
+    cursor = await conn.execute(
+        "SELECT topic FROM express_submissions WHERE student_id = ? LIMIT 1",
+        (student_id,),
+    )
+    row = await cursor.fetchone()
+    return row["topic"] if row else None
+
+
+async def save_express_submission(
+    conn, student_id: int, topic: str, step: int, answers: dict
+) -> int:
+    now = datetime.now(timezone.utc).isoformat()
+    cursor = await conn.execute(
+        """INSERT INTO express_submissions (student_id, topic, step, answers, submitted_at)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(student_id, step) DO UPDATE
+             SET answers=excluded.answers, submitted_at=excluded.submitted_at""",
+        (student_id, topic, step, json.dumps(answers, ensure_ascii=False), now),
+    )
+    await conn.commit()
+    return cursor.lastrowid
+
+
+async def get_express_submissions(conn, student_id: int) -> list[dict]:
+    cursor = await conn.execute(
+        "SELECT * FROM express_submissions WHERE student_id = ? ORDER BY step",
+        (student_id,),
+    )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def get_express_progress(conn, student_id: int) -> dict:
+    """Status across all 3 steps + locked topic (if any).
+
+    status values:
+      not_started        — no rows
+      step_1 / step_2    — partially complete
+      submitted          — all 3 steps saved (UI shows lock screen)
+    """
+    subs = await get_express_submissions(conn, student_id)
+    if not subs:
+        return {
+            "topic": None,
+            "completed_steps": [],
+            "status": "not_started",
+            "submissions": [],
+        }
+    completed = [s["step"] for s in subs]
+    status = "submitted" if len(completed) == 3 else f"step_{max(completed)}"
+    return {
+        "topic": subs[0]["topic"],
+        "completed_steps": completed,
+        "status": status,
+        "submissions": subs,
+    }
+
+
+async def get_express_submissions_all(conn, group: str | None = None) -> list[dict]:
+    """Aggregated view for admin tab: one row per student who started express practice."""
+    base = """
+        SELECT es.student_id,
+               s.name, s.group_name,
+               MIN(es.topic) AS topic,
+               COUNT(es.step) AS steps_done,
+               MAX(es.submitted_at) AS last_submitted_at
+        FROM express_submissions es
+        JOIN students s ON s.id = es.student_id
+    """
+    if group:
+        cursor = await conn.execute(
+            base + " WHERE s.group_name = ? GROUP BY es.student_id ORDER BY s.name",
+            (group,),
+        )
+    else:
+        cursor = await conn.execute(
+            base + " GROUP BY es.student_id ORDER BY s.name"
+        )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def delete_express_submissions(conn, student_id: int) -> None:
+    await conn.execute(
+        "DELETE FROM express_submissions WHERE student_id = ?", (student_id,)
+    )
     await conn.commit()

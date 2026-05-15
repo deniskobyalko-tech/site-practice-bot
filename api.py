@@ -12,8 +12,11 @@ from db import (
     create_web_token, get_student_by_web_token, delete_web_tokens,
     is_paused, get_whitelist,
     save_quiz_submission, get_quiz_submission, get_quiz_submissions_all, delete_quiz_submission,
+    get_express_topic, save_express_submission, get_express_submissions,
+    get_express_progress, get_express_submissions_all, delete_express_submissions,
 )
 from quiz_data import get_shuffled_questions, score_answers
+from express_tasks import TOPICS, TOPIC_IDS, get_topic, get_topics_summary
 from config import GROUPS
 
 
@@ -160,6 +163,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         student = await get_student_by_telegram_id(conn, telegram_id)
         if not student:
             raise HTTPException(404, "Student not found")
+        await conn.execute("DELETE FROM express_submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM students WHERE id = ?", (student["id"],))
@@ -170,6 +174,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
     async def admin_reset_student(student_id: int, request: Request):
         telegram_id = (await get_user_id(request))[0]
         require_admin(telegram_id)
+        await conn.execute("DELETE FROM express_submissions WHERE student_id = ?", (student_id,))
         await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student_id,))
         await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student_id,))
         await conn.execute("DELETE FROM web_tokens WHERE student_id = ?", (student_id,))
@@ -261,6 +266,167 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         require_admin(telegram_id)
         await delete_quiz_submission(conn, student_id)
         return {"ok": True}
+
+    # --- Express practice ("Практика на пару") ---
+
+    @app.get("/api/express/topics")
+    async def express_topics(request: Request):
+        (await get_user_id(request))[0]
+        return get_topics_summary()
+
+    @app.get("/api/express/task/{topic}")
+    async def express_task(topic: str, request: Request):
+        (await get_user_id(request))[0]
+        t = get_topic(topic)
+        if not t:
+            raise HTTPException(404, "Unknown topic")
+        # Strip 'criteria' from response — that's for the grader, not the student.
+        return {
+            "id": t["id"],
+            "title": t["title"],
+            "emoji": t["emoji"],
+            "duration": t["duration"],
+            "steps": [
+                {
+                    "id": st["id"],
+                    "title": st["title"],
+                    "brief": st["brief"],
+                    "fields": st["fields"],
+                }
+                for st in t["steps"]
+            ],
+        }
+
+    @app.get("/api/express/progress")
+    async def express_progress(request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found. Register first.")
+        progress = await get_express_progress(conn, student["id"])
+        return {
+            "topic": progress["topic"],
+            "completed_steps": progress["completed_steps"],
+            "status": progress["status"],
+            "answers_by_step": {
+                s["step"]: json.loads(s["answers"])
+                for s in progress["submissions"]
+            },
+        }
+
+    @app.post("/api/express/step/{step}")
+    async def express_save_step(step: int, request: Request):
+        if step not in (1, 2, 3):
+            raise HTTPException(400, "Step must be 1, 2, or 3")
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found. Register first.")
+
+        body = await request.json()
+        topic = body.get("topic")
+        answers = body.get("answers", {})
+        if topic not in TOPIC_IDS:
+            raise HTTPException(400, "Unknown topic")
+        if not isinstance(answers, dict):
+            raise HTTPException(400, "Answers must be an object")
+
+        progress = await get_express_progress(conn, student["id"])
+
+        # Lock once all 3 steps are submitted (admin still allowed to overwrite).
+        if progress["status"] == "submitted" and telegram_id != admin_telegram_id:
+            raise HTTPException(409, "Express practice already submitted")
+
+        # Once a topic is chosen via the first save, students cannot switch.
+        if progress["topic"] and progress["topic"] != topic and telegram_id != admin_telegram_id:
+            raise HTTPException(409, "Topic already locked for this student")
+
+        await save_express_submission(conn, student["id"], topic, step, answers)
+        updated = await get_express_progress(conn, student["id"])
+        return {
+            "ok": True,
+            "progress": {
+                "topic": updated["topic"],
+                "completed_steps": updated["completed_steps"],
+                "status": updated["status"],
+            },
+        }
+
+    @app.get("/api/admin/express/students")
+    async def admin_express_students(request: Request, group: str | None = None):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        rows = await get_express_submissions_all(conn, group=group)
+        topic_titles = {t["id"]: t["title"] for t in TOPICS}
+        for r in rows:
+            r["topic_title"] = topic_titles.get(r["topic"], r["topic"])
+            r["status"] = "submitted" if r["steps_done"] == 3 else f"step_{r['steps_done']}"
+        return rows
+
+    @app.get("/api/admin/express/student/{student_id}")
+    async def admin_express_student_detail(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        progress = await get_express_progress(conn, student_id)
+        if not progress["submissions"]:
+            raise HTTPException(404, "No express submissions for this student")
+        topic = get_topic(progress["topic"]) or {}
+        steps_meta = {st["id"]: st for st in topic.get("steps", [])}
+        return {
+            "topic": progress["topic"],
+            "topic_title": topic.get("title", progress["topic"]),
+            "status": progress["status"],
+            "submissions": [
+                {
+                    "step": s["step"],
+                    "step_title": steps_meta.get(s["step"], {}).get("title", ""),
+                    "criteria": steps_meta.get(s["step"], {}).get("criteria", ""),
+                    "brief": steps_meta.get(s["step"], {}).get("brief", ""),
+                    "fields": steps_meta.get(s["step"], {}).get("fields", []),
+                    "answers": json.loads(s["answers"]),
+                    "submitted_at": s["submitted_at"],
+                }
+                for s in progress["submissions"]
+            ],
+        }
+
+    @app.post("/api/admin/express/reset/{student_id}")
+    async def admin_express_reset(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        await delete_express_submissions(conn, student_id)
+        return {"ok": True}
+
+    @app.get("/api/admin/express/export")
+    async def admin_express_export(request: Request, group: str | None = None):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        rows = await get_express_submissions_all(conn, group=group)
+        topic_titles = {t["id"]: t["title"] for t in TOPICS}
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "Name", "Group", "Topic", "Steps done", "Status",
+            "Step 1 answers", "Step 2 answers", "Step 3 answers",
+        ])
+        for r in rows:
+            subs = await get_express_submissions(conn, r["student_id"])
+            answers_by_step = {s["step"]: s["answers"] for s in subs}
+            writer.writerow([
+                r["name"], r["group_name"],
+                topic_titles.get(r["topic"], r["topic"]),
+                r["steps_done"],
+                "submitted" if r["steps_done"] == 3 else f"step_{r['steps_done']}",
+                answers_by_step.get(1, ""),
+                answers_by_step.get(2, ""),
+                answers_by_step.get(3, ""),
+            ])
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=express_results.csv"},
+        )
 
     # Store bot instance for notifications
     app.state.bot = None
