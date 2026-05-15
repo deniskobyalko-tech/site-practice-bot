@@ -13,6 +13,21 @@
             padding-right: 18px;
         }
 
+        .back-link {
+            background: none;
+            border: none;
+            color: var(--btn-bg);
+            font-size: 15px;
+            font-weight: 500;
+            padding: 6px 0 12px;
+            margin: 0 0 4px -2px;
+            cursor: pointer;
+            text-align: left;
+            display: inline-block;
+        }
+        .back-link:active { opacity: 0.5; }
+        .back-link.hidden { display: none !important; }
+
         .express-header {
             font-size: 13px;
             color: var(--hint);
@@ -230,6 +245,7 @@
 
     <!-- Step screen -->
     <div id="screen-step" class="screen hidden">
+        <button type="button" id="btn-step-back-top" class="back-link hidden">← Назад</button>
         <div class="step-progress">
             <span id="step-progress-label">Шаг 1 из 9</span>
             <span class="topic-pill" id="topic-pill"></span>

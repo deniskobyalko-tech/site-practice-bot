@@ -37,6 +37,8 @@ function updateBackButton() {
     var isFirstOverall = state.topicIndex === 0 && state.stepIndex === 0;
     if (isFirstOverall) tg.BackButton.hide();
     else tg.BackButton.show();
+    var topBtn = document.getElementById("btn-step-back-top");
+    if (topBtn) topBtn.classList.toggle("hidden", isFirstOverall);
 }
 
 function goBackOneStep() {
@@ -48,6 +50,7 @@ function goBackOneStep() {
 }
 
 tg.BackButton.onClick(goBackOneStep);
+document.getElementById("btn-step-back-top").addEventListener("click", goBackOneStep);
 
 async function api(method, path, body) {
     var opts = { method: method, headers: Object.assign({}, AUTH_HEADER) };
