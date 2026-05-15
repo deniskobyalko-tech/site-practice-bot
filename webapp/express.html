@@ -64,19 +64,50 @@
         }
 
         .step-fields .form-group { margin-bottom: 14px; }
+        .step-fields .form-group label {
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
         .step-fields textarea {
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.5;
-            min-height: 100px;
+            min-height: 92px;
+            padding: 10px 12px;
+        }
+        .step-fields textarea::placeholder {
+            color: var(--hint);
+            opacity: 0.55;
+            font-size: 13px;
         }
 
+        /* Sticky action bar pinned at the bottom of the viewport.
+           Body padding-bottom keeps fields from getting hidden under it. */
+        #screen-step { padding-bottom: 86px; }
         .step-actions {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
             display: flex;
             gap: 8px;
-            margin-top: 8px;
+            padding: 10px 0 calc(env(safe-area-inset-bottom, 0px) + 10px);
+            background: linear-gradient(
+                to top,
+                var(--bg) 0%,
+                var(--bg) 75%,
+                rgba(0, 0, 0, 0) 100%
+            );
+            margin-top: 12px;
         }
-        .step-actions .btn-secondary { flex: 0 0 auto; }
-        .step-actions .btn-primary { flex: 1; }
+        .step-actions .btn-secondary { flex: 0 0 auto; padding: 12px 16px; }
+        .step-actions .btn-primary { flex: 1; font-size: 16px; padding: 14px; }
+
+        /* Brief — slightly tighter padding on mobile */
+        @media (max-width: 480px) {
+            .step-brief { padding: 10px 12px; font-size: 13.5px; }
+            .step-title { font-size: 17px; }
+            .step-progress { font-size: 12px; }
+        }
 
         .saved-pill {
             display: inline-block;
