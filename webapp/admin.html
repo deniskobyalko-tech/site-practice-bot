@@ -69,8 +69,9 @@
     </div>
 
     <div class="tab-bar" style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--secondary-bg)">
-        <button class="tab-btn active" data-tab="practice" style="flex:1;padding:10px;background:none;border:none;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--btn-bg);margin-bottom:-2px">Практика</button>
-        <button class="tab-btn" data-tab="quiz" style="flex:1;padding:10px;background:none;border:none;color:var(--hint);font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">Тест по метрикам</button>
+        <button class="tab-btn active" data-tab="practice" style="flex:1;padding:10px;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--btn-bg);margin-bottom:-2px">Практика</button>
+        <button class="tab-btn" data-tab="express" style="flex:1;padding:10px;background:none;border:none;color:var(--hint);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">На пару</button>
+        <button class="tab-btn" data-tab="quiz" style="flex:1;padding:10px;background:none;border:none;color:var(--hint);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">Тест</button>
     </div>
 
     <div id="tab-practice">
@@ -86,6 +87,21 @@
         </div>
         <div id="students-list"></div>
         <div id="empty-state" class="empty-state hidden">Пока нет студентов</div>
+    </div>
+
+    <div id="tab-express" class="hidden">
+        <div class="filter-bar">
+            <select id="express-group-filter">
+                <option value="">Все группы</option>
+                <option value="МДК01">МДК01</option>
+                <option value="МДК02">МДК02</option>
+                <option value="МДК03">МДК03</option>
+                <option value="МДК04">МДК04</option>
+            </select>
+            <button class="btn-secondary" id="btn-express-export">CSV</button>
+        </div>
+        <div id="express-students-list"></div>
+        <div id="express-empty-state" class="empty-state hidden">Пока никто не делал «Практику на пару»</div>
     </div>
 
     <div id="tab-quiz" class="hidden">

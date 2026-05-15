@@ -210,9 +210,11 @@ document.querySelectorAll(".tab-btn").forEach(function (btn) {
         btn.classList.add("active");
 
         document.getElementById("tab-practice").classList.toggle("hidden", activeTab !== "practice");
+        document.getElementById("tab-express").classList.toggle("hidden", activeTab !== "express");
         document.getElementById("tab-quiz").classList.toggle("hidden", activeTab !== "quiz");
 
         if (activeTab === "quiz") loadQuizStudents();
+        if (activeTab === "express") loadExpressStudents();
     });
 });
 
@@ -323,3 +325,116 @@ document.getElementById("btn-quiz-export").addEventListener("click", async funct
 
 // Quiz filter
 document.getElementById("quiz-group-filter").addEventListener("change", loadQuizStudents);
+
+// --- Express Tab ("Практика на пару") ---
+
+async function loadExpressStudents() {
+    var group = document.getElementById("express-group-filter").value;
+    var query = group ? "?group=" + encodeURIComponent(group) : "";
+    try {
+        var students = await api("GET", "/api/admin/express/students" + query);
+        var list = document.getElementById("express-students-list");
+        var empty = document.getElementById("express-empty-state");
+
+        if (students.length === 0) {
+            list.innerHTML = "";
+            empty.classList.remove("hidden");
+            return;
+        }
+
+        empty.classList.add("hidden");
+        list.innerHTML = students.map(function (s) {
+            var statusLabel = s.status === "submitted"
+                ? "Сдано"
+                : "Шаг " + s.steps_done + "/3";
+            return '<div class="student-row" data-express-sid="' + s.student_id + '">' +
+                '<div class="student-meta">' +
+                    '<div>' +
+                        '<div class="student-name">' + esc(s.name) + '</div>' +
+                        '<div class="student-group">' +
+                            esc(s.group_name) + ' · ' + esc(s.topic_title) +
+                        '</div>' +
+                    '</div>' +
+                    '<span class="status-badge status-' + s.status + '">' + statusLabel + '</span>' +
+                '</div>' +
+                '<div class="student-detail" id="express-detail-' + s.student_id + '"></div>' +
+            '</div>';
+        }).join("");
+
+        list.querySelectorAll(".student-row").forEach(function (row) {
+            row.addEventListener("click", function () {
+                toggleExpressDetail(row.dataset.expressSid);
+            });
+        });
+    } catch (e) {
+        tg.showAlert("Ошибка: " + e.message);
+    }
+}
+
+async function toggleExpressDetail(studentId) {
+    var detail = document.getElementById("express-detail-" + studentId);
+    if (detail.classList.contains("open")) {
+        detail.classList.remove("open");
+        return;
+    }
+    try {
+        var data = await api("GET", "/api/admin/express/student/" + studentId);
+        var html = '<div style="margin:6px 0 10px;color:var(--link);font-size:13px;font-weight:600">Тема: ' + esc(data.topic_title) + '</div>';
+        data.submissions.forEach(function (s) {
+            html += '<div class="detail-step">';
+            html += '<h4>Шаг ' + s.step + ': ' + esc(s.step_title) + '</h4>';
+            if (s.criteria) {
+                html += '<div class="detail-answer" style="font-style:italic;color:var(--hint)">Критерий: ' + esc(s.criteria) + '</div>';
+            }
+            s.fields.forEach(function (f) {
+                var val = s.answers[f.id] || "";
+                if (!val) return;
+                html += '<div class="detail-answer" style="margin:6px 0 0"><strong>' + esc(f.label) + ':</strong></div>';
+                html += '<div class="detail-answer" style="white-space:pre-wrap;color:var(--text);background:var(--secondary-bg);padding:8px 10px;border-radius:6px;margin-top:4px;font-size:13px">' + esc(val) + '</div>';
+            });
+            html += '</div>';
+        });
+        html += '<button class="btn-reset-express" data-sid="' + studentId + '" style="margin-top:8px;padding:8px 16px;background:transparent;border:1px solid #f44336;color:#f44336;border-radius:8px;font-size:13px;cursor:pointer">Сбросить</button>';
+        detail.innerHTML = html;
+        detail.querySelector(".btn-reset-express").addEventListener("click", function (e) {
+            e.stopPropagation();
+            resetExpress(studentId);
+        });
+        detail.classList.add("open");
+    } catch (e) {
+        detail.innerHTML = '<div class="detail-answer">Ошибка загрузки</div>';
+        detail.classList.add("open");
+    }
+}
+
+async function resetExpress(studentId) {
+    if (!confirm("Сбросить «Практику на пару» этого студента?")) return;
+    try {
+        await fetch(API_BASE + "/api/admin/express/reset/" + studentId, {
+            method: "POST",
+            headers: AUTH_HEADER,
+        });
+        loadExpressStudents();
+    } catch (e) {
+        tg.showAlert("Ошибка: " + e.message);
+    }
+}
+
+document.getElementById("btn-express-export").addEventListener("click", async function () {
+    var group = document.getElementById("express-group-filter").value;
+    var query = group ? "?group=" + encodeURIComponent(group) : "";
+    try {
+        var resp = await fetch(API_BASE + "/api/admin/express/export" + query, { headers: AUTH_HEADER });
+        var blob = await resp.blob();
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "express_results.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        tg.showAlert("Ошибка экспорта: " + e.message);
+    }
+});
+
+document.getElementById("express-group-filter").addEventListener("change", loadExpressStudents);

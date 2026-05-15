@@ -15,6 +15,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("Результаты", web_app=WebAppInfo(url=BASE_URL + "/admin.html"))],
             [InlineKeyboardButton("Пройти как студент", web_app=WebAppInfo(url=BASE_URL))],
+            [InlineKeyboardButton("Практика на пару", web_app=WebAppInfo(url=BASE_URL + "/express.html"))],
             [InlineKeyboardButton("Пройти тест по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
             [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
         ])
@@ -22,14 +23,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn: aiosqlite.Connection = context.bot_data["db_conn"]
         paused = await is_paused(conn)
         if paused:
-            text = "Бот отдыхает 😴\nПрактика временно закрыта.\n\nНо тренажёр метрик доступен:"
+            text = "Бот отдыхает 😴\nОсновная практика временно закрыта.\n\nДоступны:"
             keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("Практика на пару", web_app=WebAppInfo(url=BASE_URL + "/express.html"))],
                 [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
             ])
         else:
             text = "Практика: Метрики сайта\n\nВыбери что открыть:"
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("Пройти практику", web_app=WebAppInfo(url=BASE_URL))],
+                [InlineKeyboardButton("Практика на пару", web_app=WebAppInfo(url=BASE_URL + "/express.html"))],
                 [InlineKeyboardButton("Пройти тест по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
                 [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
             ])
@@ -177,12 +180,13 @@ async def reset_tests(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Студент с telegram_id {tg_id} не найден.")
         return
     student_id, name, group_name = row[0], row[1], row[2]
+    await conn.execute("DELETE FROM express_submissions WHERE student_id = ?", (student_id,))
     await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student_id,))
     await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student_id,))
     await conn.commit()
     await update.message.reply_text(
         f"Тесты сброшены для {name} ({group_name}, tg_id={tg_id}).\n"
-        f"Студент может пройти практику и тест по метрикам заново."
+        f"Студент может пройти все практики заново."
     )
 
 
