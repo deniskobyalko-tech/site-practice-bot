@@ -250,3 +250,63 @@ async def get_quiz_submissions_all(conn, group: str = None):
 async def delete_quiz_submission(conn, student_id: int):
     await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student_id,))
     await conn.commit()
+
+
+# --- Campaign (Practice #2) ---
+
+async def get_campaign_scenario(conn, student_id: int) -> str:
+    cursor = await conn.execute("SELECT campaign_scenario FROM students WHERE id = ?", (student_id,))
+    row = await cursor.fetchone()
+    return row["campaign_scenario"] if row and row["campaign_scenario"] else None
+
+
+async def save_campaign_submission(conn, student_id: int, step: int, scenario_type: str, answers: dict) -> int:
+    now = datetime.now(timezone.utc).isoformat()
+    cursor = await conn.execute(
+        """INSERT INTO campaign_submissions (student_id, step, scenario_type, answers, submitted_at)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(student_id, step) DO UPDATE SET
+               answers=excluded.answers,
+               submitted_at=excluded.submitted_at,
+               scenario_type=excluded.scenario_type""",
+        (student_id, step, scenario_type, json.dumps(answers, ensure_ascii=False), now),
+    )
+    await conn.commit()
+    return cursor.lastrowid
+
+
+async def get_campaign_submissions(conn, student_id: int):
+    cursor = await conn.execute(
+        "SELECT * FROM campaign_submissions WHERE student_id = ? ORDER BY step", (student_id,)
+    )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def get_campaign_progress(conn, student_id: int) -> dict:
+    subs = await get_campaign_submissions(conn, student_id)
+    completed_steps = [s["step"] for s in subs]
+    status = "submitted" if len(completed_steps) == 3 else (f"step_{max(completed_steps)}" if completed_steps else "registered")
+    return {"completed_steps": completed_steps, "status": status, "submissions": subs}
+
+
+async def get_campaign_submissions_all(conn, group: str = None):
+    if group:
+        cursor = await conn.execute(
+            """SELECT cs.*, s.name, s.group_name FROM campaign_submissions cs
+               JOIN students s ON cs.student_id = s.id
+               WHERE s.group_name = ? ORDER BY s.name, cs.step""",
+            (group,),
+        )
+    else:
+        cursor = await conn.execute(
+            """SELECT cs.*, s.name, s.group_name FROM campaign_submissions cs
+               JOIN students s ON cs.student_id = s.id ORDER BY s.name, cs.step"""
+        )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def delete_campaign_submissions(conn, student_id: int):
+    await conn.execute("DELETE FROM campaign_submissions WHERE student_id = ?", (student_id,))
+    await conn.commit()

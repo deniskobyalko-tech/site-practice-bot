@@ -12,8 +12,11 @@ from db import (
     create_web_token, get_student_by_web_token, delete_web_tokens,
     is_paused, get_whitelist,
     save_quiz_submission, get_quiz_submission, get_quiz_submissions_all, delete_quiz_submission,
+    get_campaign_scenario, save_campaign_submission, get_campaign_submissions,
+    get_campaign_progress, get_campaign_submissions_all, delete_campaign_submissions,
 )
 from quiz_data import get_shuffled_questions, score_answers
+from campaign_data import build_dashboard, SCENARIOS as CAMPAIGN_SCENARIOS
 from config import GROUPS
 
 
@@ -256,6 +259,72 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         telegram_id = (await get_user_id(request))[0]
         require_admin(telegram_id)
         await delete_quiz_submission(conn, student_id)
+        return {"ok": True}
+
+    # ============ Campaign (Practice #2) ============
+
+    @app.get("/api/campaign/dashboard")
+    async def campaign_dashboard(request: Request):
+        """Return student's fixed scenario dashboard (deterministic)."""
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found")
+        scenario = await get_campaign_scenario(conn, student["id"])
+        if not scenario:
+            # Fallback: assign on demand
+            import itertools
+            scenarios = list(CAMPAIGN_SCENARIOS.keys())
+            scenario = scenarios[student["id"] % len(scenarios)]
+            await conn.execute("UPDATE students SET campaign_scenario=? WHERE id=?", (scenario, student["id"]))
+            await conn.commit()
+        dashboard = build_dashboard(scenario, student["id"])
+        return dashboard
+
+    @app.get("/api/campaign/progress")
+    async def campaign_progress(request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found")
+        progress = await get_campaign_progress(conn, student["id"])
+        return progress
+
+    @app.post("/api/campaign/submit/{step}")
+    async def campaign_submit(step: int, request: Request):
+        if step not in (1, 2, 3):
+            raise HTTPException(400, "Invalid step")
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found")
+        scenario = await get_campaign_scenario(conn, student["id"])
+        if not scenario:
+            raise HTTPException(400, "Scenario not assigned")
+        body = await request.json()
+        answers = body.get("answers", {})
+        await save_campaign_submission(conn, student["id"], step, scenario, answers)
+        return {"ok": True, "step": step}
+
+    @app.get("/api/admin/campaign/students")
+    async def admin_campaign_students(request: Request, group: str = None):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        return await get_campaign_submissions_all(conn, group=group)
+
+    @app.get("/api/admin/campaign/student/{student_id}")
+    async def admin_campaign_student_detail(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        subs = await get_campaign_submissions(conn, student_id)
+        scenario = await get_campaign_scenario(conn, student_id)
+        return {"scenario": scenario, "submissions": subs}
+
+    @app.post("/api/admin/campaign/reset/{student_id}")
+    async def admin_campaign_reset(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        await delete_campaign_submissions(conn, student_id)
         return {"ok": True}
 
     # Store bot instance for notifications
