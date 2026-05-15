@@ -9,7 +9,12 @@ CREATE TABLE IF NOT EXISTS students (
     telegram_id INTEGER UNIQUE NOT NULL,
     name TEXT NOT NULL,
     group_name TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    practice_grade INTEGER,
+    practice_status TEXT,
+    practice2_grade INTEGER,
+    practice2_status TEXT,
+    campaign_scenario TEXT
 );
 
 CREATE TABLE IF NOT EXISTS submissions (
@@ -56,12 +61,42 @@ CREATE TABLE IF NOT EXISTS express_submissions (
     submitted_at TEXT NOT NULL,
     UNIQUE(student_id, topic, step)
 );
+
+CREATE TABLE IF NOT EXISTS campaign_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL REFERENCES students(id),
+    step INTEGER NOT NULL CHECK(step IN (1, 2, 3)),
+    scenario_type TEXT NOT NULL,
+    answers TEXT NOT NULL,
+    submitted_at TEXT NOT NULL,
+    UNIQUE(student_id, step)
+);
 """
+
+
+# Columns added to students after the original schema shipped — ALTER TABLE for existing DBs.
+_STUDENT_MIGRATION_COLUMNS = [
+    ("practice_grade", "INTEGER"),
+    ("practice_status", "TEXT"),
+    ("practice2_grade", "INTEGER"),
+    ("practice2_status", "TEXT"),
+    ("campaign_scenario", "TEXT"),
+]
+
+
+async def _migrate_students_columns(conn: aiosqlite.Connection) -> None:
+    cursor = await conn.execute("PRAGMA table_info(students)")
+    existing = {row["name"] for row in await cursor.fetchall()}
+    for col_name, col_type in _STUDENT_MIGRATION_COLUMNS:
+        if col_name not in existing:
+            await conn.execute(f"ALTER TABLE students ADD COLUMN {col_name} {col_type}")
+    await conn.commit()
 
 
 async def init_db(conn: aiosqlite.Connection):
     conn.row_factory = aiosqlite.Row
     await conn.executescript(SCHEMA)
+    await _migrate_students_columns(conn)
     await conn.commit()
 
 
@@ -355,4 +390,66 @@ async def delete_express_submissions(conn, student_id: int) -> None:
     await conn.execute(
         "DELETE FROM express_submissions WHERE student_id = ?", (student_id,)
     )
+    await conn.commit()
+
+
+# --- Campaign (Practice #2) ---
+
+async def get_campaign_scenario(conn, student_id: int) -> str | None:
+    cursor = await conn.execute("SELECT campaign_scenario FROM students WHERE id = ?", (student_id,))
+    row = await cursor.fetchone()
+    return row["campaign_scenario"] if row and row["campaign_scenario"] else None
+
+
+async def save_campaign_submission(conn, student_id: int, step: int, scenario_type: str, answers: dict) -> int:
+    now = datetime.now(timezone.utc).isoformat()
+    cursor = await conn.execute(
+        """INSERT INTO campaign_submissions (student_id, step, scenario_type, answers, submitted_at)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(student_id, step) DO UPDATE SET
+               answers=excluded.answers,
+               submitted_at=excluded.submitted_at,
+               scenario_type=excluded.scenario_type""",
+        (student_id, step, scenario_type, json.dumps(answers, ensure_ascii=False), now),
+    )
+    await conn.commit()
+    return cursor.lastrowid
+
+
+async def get_campaign_submissions(conn, student_id: int):
+    cursor = await conn.execute(
+        "SELECT * FROM campaign_submissions WHERE student_id = ? ORDER BY step", (student_id,)
+    )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def get_campaign_progress(conn, student_id: int) -> dict:
+    subs = await get_campaign_submissions(conn, student_id)
+    completed_steps = [s["step"] for s in subs]
+    status = "submitted" if len(completed_steps) == 3 else (
+        f"step_{max(completed_steps)}" if completed_steps else "registered"
+    )
+    return {"completed_steps": completed_steps, "status": status, "submissions": subs}
+
+
+async def get_campaign_submissions_all(conn, group: str | None = None):
+    if group:
+        cursor = await conn.execute(
+            """SELECT cs.*, s.name, s.group_name FROM campaign_submissions cs
+               JOIN students s ON cs.student_id = s.id
+               WHERE s.group_name = ? ORDER BY s.name, cs.step""",
+            (group,),
+        )
+    else:
+        cursor = await conn.execute(
+            """SELECT cs.*, s.name, s.group_name FROM campaign_submissions cs
+               JOIN students s ON cs.student_id = s.id ORDER BY s.name, cs.step"""
+        )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def delete_campaign_submissions(conn, student_id: int):
+    await conn.execute("DELETE FROM campaign_submissions WHERE student_id = ?", (student_id,))
     await conn.commit()

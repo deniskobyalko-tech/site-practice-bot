@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Практика #2: Диагностика кампании</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="css/metrics.css">
+    <style>
+        .wizard-progress { display:flex; gap:8px; margin:20px 0; }
+        .wizard-step-dot { flex:1; height:4px; background:var(--border); border-radius:2px; }
+        .wizard-step-dot.active { background:var(--red); }
+        .wizard-step-dot.done { background:var(--green); }
+        .wizard-step { display:none; }
+        .wizard-step.active { display:block; }
+        .question { margin-bottom:20px; }
+        .question > label {
+            display:block; font-weight:600; margin-bottom:6px; color:var(--text); font-size:15px;
+        }
+        .question .hint { display:block; font-size:13px; color:var(--text-secondary); margin-bottom:10px; line-height:1.4; }
+        .question textarea, .question input[type=text], .question select {
+            width:100%; padding:12px 14px;
+            border:1px solid var(--border); border-radius:var(--radius-xs);
+            font-family:inherit; font-size:14px; box-sizing:border-box;
+            background:var(--card-dark); color:var(--text); line-height:1.5;
+        }
+        .question textarea { min-height:100px; resize:vertical; }
+        .question textarea::placeholder, .question input[type=text]::placeholder {
+            color:var(--text-muted);
+        }
+        .question textarea:focus, .question input[type=text]:focus {
+            outline:none; border-color:var(--red);
+        }
+        .radio-group { display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+        .radio-group label {
+            font-weight:500; display:flex; align-items:center; gap:10px; cursor:pointer;
+            padding:10px 12px; background:var(--card); border-radius:var(--radius-xs);
+            color:var(--text); border:1px solid transparent; transition:border-color 0.15s;
+        }
+        .radio-group label:hover { border-color:var(--border); }
+        .radio-group input { margin:0; accent-color:var(--red); }
+        .btn-row { display:flex; gap:10px; margin-top:24px; }
+        .btn-row button { flex:1; }
+        .scenario-title {
+            background:var(--card); padding:14px 18px; border-radius:var(--radius-xs);
+            margin:14px 0; font-weight:700; color:var(--red-light);
+            border-left:3px solid var(--red);
+        }
+        .dashboard-note { font-size:14px; color:var(--text-secondary); margin-bottom:12px; line-height:1.45; }
+        .status-done {
+            background:rgba(76,175,80,0.12); padding:16px 18px; border-radius:var(--radius-xs);
+            margin:20px 0; color:var(--green-light); border-left:3px solid var(--green);
+            line-height:1.5;
+        }
+        .status-done b { color:var(--white); }
+        #save-error {
+            background:rgba(227,30,36,0.12); padding:12px 16px; border-radius:var(--radius-xs);
+            border-left:3px solid var(--red); color:var(--red-light) !important;
+        }
+        #not-registered .section-block p { color:var(--text-secondary); line-height:1.55; }
+        h3 { color:var(--text); font-size:22px; font-weight:700; margin-bottom:10px; letter-spacing:-0.4px; }
+    </style>
+</head>
+<body>
+    <div class="section-block">
+        <div class="section-label">Практика #2</div>
+        <h2 class="section-title">Диагностика рекламной кампании</h2>
+        <p class="section-desc">Три шага: разбор → корень → план. Перед тобой реальные цифры. Найди проблему, объясни её и предложи решение.</p>
+    </div>
+
+    <div id="not-registered" style="display:none;">
+        <div class="section-block">
+            <p>Чтобы пройти практику, сначала зайди в основную практику (кнопка «Пройти практику» в боте) и зарегистрируйся.</p>
+        </div>
+    </div>
+
+    <div id="wizard-root" style="display:none;">
+        <div class="wizard-progress">
+            <div class="wizard-step-dot" id="dot-1"></div>
+            <div class="wizard-step-dot" id="dot-2"></div>
+            <div class="wizard-step-dot" id="dot-3"></div>
+        </div>
+
+        <!-- Status for completed -->
+        <div id="all-done" class="status-done" style="display:none;">
+            ✅ <b>Практика сдана.</b> Все 3 шага сохранены.<br>
+            <span id="all-done-scenario"></span><br>
+            Можешь перепроверить ответы ниже. Оценку поставит преподаватель.
+        </div>
+
+        <!-- ===== STEP 1 ===== -->
+        <div class="wizard-step" id="step-1">
+            <div class="section-block">
+                <h3>Шаг 1. Разбор кампании</h3>
+                <div class="scenario-title" id="scenario-title-1">Твой сценарий</div>
+                <p class="dashboard-note">Ниже — отчёт по 11 метрикам за последний месяц. Красная стрелка = метрика проседает, зелёная = растёт.</p>
+            </div>
+
+            <div id="dashboard-grid" class="metrics-grid"></div>
+
+            <div class="section-block">
+                <div class="question">
+                    <label>1. Какой канал проседает?</label>
+                    <span class="hint">Посмотри на 11 метрик — сгруппируй по каналам и найди, где больше всего отклонений.</span>
+                    <div class="radio-group">
+                        <label><input type="radio" name="q1_channel" value="seo"> SEO</label>
+                        <label><input type="radio" name="q1_channel" value="context"> Контекст (PPC)</label>
+                        <label><input type="radio" name="q1_channel" value="media"> Медийка</label>
+                        <label><input type="radio" name="q1_channel" value="mixed"> Несколько каналов сразу</label>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <label>2. В какой точке воронки проблема?</label>
+                    <span class="hint">Воронка: Показы → CTR → Клики → Conv Rate → CPA</span>
+                    <div class="radio-group">
+                        <label><input type="radio" name="q2_funnel" value="impressions"> Показы / охват</label>
+                        <label><input type="radio" name="q2_funnel" value="ctr"> CTR (клики на показ)</label>
+                        <label><input type="radio" name="q2_funnel" value="conversion"> Конверсия (Conv Rate / CPA)</label>
+                        <label><input type="radio" name="q2_funnel" value="frequency"> Частота / выгорание</label>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <label>3. Опиши симптомы в цифрах.</label>
+                    <span class="hint">Какие метрики отклонены и на сколько? Приведи конкретные цифры с дашборда. Минимум 3 метрики.</span>
+                    <textarea name="q3_symptoms" placeholder="Например: Organic CTR всего 1.5% (норма 5-11% для позиции 5), при этом Impressions 70 000 — то есть показы есть, но кликают редко. Avg Position 6 — ок."></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-primary" onclick="saveStep(1)">Сохранить и далее →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== STEP 2 ===== -->
+        <div class="wizard-step" id="step-2">
+            <div class="section-block">
+                <h3>Шаг 2. Корень причины</h3>
+                <p class="dashboard-note">Теперь объясни, <b>почему</b> эти метрики провалились. Не «маркетинг плохой», а конкретная механика.</p>
+            </div>
+
+            <div class="section-block">
+                <div class="question">
+                    <label>4. Главная причина провала.</label>
+                    <span class="hint">Что именно сломано? Примеры: плохой сниппет (title/description), нерелевантная семантика в Директе, мусорные площадки в медийке, выгоревшая аудитория, исчерпанная семантика.</span>
+                    <textarea name="q4_root_main" placeholder="Например: Plain сниппет в выдаче — Title только из названия страницы, без выгоды. Поэтому показы есть, а кликать некуда — пользователь выбирает конкурента с «ценой от 2 990 ₽» в сниппете."></textarea>
+                </div>
+
+                <div class="question">
+                    <label>5. Сопутствующая причина (что усугубляет).</label>
+                    <span class="hint">Второстепенный фактор, который усиливает основную проблему. Если не видишь — напиши «нет».</span>
+                    <textarea name="q5_root_secondary" placeholder="Например: Отсутствует микроразметка (отзывы, цены) — сниппет выглядит ещё беднее на фоне конкурентов с рейтингом 4.8 ★."></textarea>
+                </div>
+
+                <div class="question">
+                    <label>6. Как цифры подтверждают твой вывод?</label>
+                    <span class="hint">Какие именно метрики и их соотношения указывают на эту причину, а не на другую. Покажи причинно-следственную связь.</span>
+                    <textarea name="q6_evidence" placeholder="Например: Avg Position 6 — это нормально, первая страница, должно давать CTR ~5-7%. По факту CTR 1.5% — в 3-4 раза ниже нормы для этой позиции. Если бы проблема была в позиции, CTR бы колебался в норме. Раз позиция норм, а CTR низкий — дело в сниппете."></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-secondary" onclick="goToStep(1)">← Назад</button>
+                    <button class="btn-primary" onclick="saveStep(2)">Сохранить и далее →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== STEP 3 ===== -->
+        <div class="wizard-step" id="step-3">
+            <div class="section-block">
+                <h3>Шаг 3. План действий и прогноз</h3>
+                <p class="dashboard-note">Конкретные действия, гипотеза по SMART и что будет, если ничего не делать.</p>
+            </div>
+
+            <div class="section-block">
+                <div class="question">
+                    <label>7. Три конкретных действия для починки.</label>
+                    <span class="hint">Не «улучшить сайт», а именно что сделать: «переписать title на шаблон [товар] [выгода] [бренд]», «добавить минус-слова —бу —отзывы —своими руками» и т.д. Каждый пункт с новой строки.</span>
+                    <textarea name="q7_actions" rows="5" placeholder="1. Переписать title для топ-20 посадочных по шаблону: [Что] [Цена/Выгода] — [Бренд].&#10;2. Подключить микроразметку Product+Review, чтобы в сниппете появились рейтинги и цена.&#10;3. Дописать description 150-160 символов с призывом «Доставим за 2 дня» для тех страниц, где description <100 символов."></textarea>
+                </div>
+
+                <div class="question">
+                    <label>8. Гипотеза.</label>
+                    <span class="hint">Формат: <b>Если [действие], то [результат], потому что [причина]</b>. Одна главная гипотеза.</span>
+                    <textarea name="q8_hypothesis" placeholder="Если переписать title с добавлением цены и бренда, то Organic CTR вырастет с 1.5% до 4-5%, потому что сниппет станет конкурентоспособным на фоне других выдач."></textarea>
+                </div>
+
+                <div class="question">
+                    <label>9. Прогноз без действий.</label>
+                    <span class="hint">Что произойдёт через 1-2 месяца, если всё оставить как есть?</span>
+                    <textarea name="q9_forecast" placeholder="Позиции начнут медленно падать: Яндекс/Google видят низкий CTR и интерпретируют страницу как нерелевантную. Через 1-2 месяца уйдём со страницы 1 на страницу 2, Impressions упадут на 40-60%, органический трафик на 70%. Восстановление займёт 6+ месяцев."></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-secondary" onclick="goToStep(2)">← Назад</button>
+                    <button class="btn-primary" onclick="saveStep(3)">Сдать практику ✓</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="save-error" style="display:none; color:#b82020; margin:12px 0;"></div>
+    </div>
+
+    <script src="js/campaign.js"></script>
+    <script>
+        if (window.Telegram && window.Telegram.WebApp) {
+            var tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+        }
+    </script>
+</body>
+</html>

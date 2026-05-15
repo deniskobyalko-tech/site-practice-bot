@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажёр метрик каналов</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="css/metrics.css">
+</head>
+<body>
+    <!-- ===== Header ===== -->
+    <div class="section-block">
+        <div class="section-label">01</div>
+        <h2 class="section-title">Метрики каналов продвижения</h2>
+        <p class="section-desc">SEO · Контекст · Медийка. Каждый канал — своя воронка и свой набор KPI. Цель — научиться диагностировать канал по цифрам.</p>
+    </div>
+
+    <!-- ===== Funnel of Channels ===== -->
+    <div class="section-block">
+        <div class="section-label">02</div>
+        <h2 class="section-title">Воронка каналов</h2>
+        <p class="section-desc">Каналы работают как портфель по воронке. Один не заменяет другой.</p>
+
+        <div class="funnel">
+            <div class="funnel-step">
+                <div class="funnel-bar">
+                    <div class="funnel-fill" style="width:100%"></div>
+                    <span class="funnel-label">Awareness · Медийка</span>
+                    <span class="funnel-pct">Reach, CPM, Frequency</span>
+                </div>
+            </div>
+            <div class="funnel-step">
+                <div class="funnel-bar">
+                    <div class="funnel-fill" style="width:55%"></div>
+                    <span class="funnel-label">Consideration · SEO</span>
+                    <span class="funnel-pct">Impressions, Position, CTR</span>
+                </div>
+            </div>
+            <div class="funnel-step">
+                <div class="funnel-bar">
+                    <div class="funnel-fill" style="width:25%"></div>
+                    <span class="funnel-label">Conversion · Контекст</span>
+                    <span class="funnel-pct">CTR, CPC, Cost/Conv</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Trainer ===== -->
+    <div class="section-block" id="section-trainer">
+        <div class="section-label">03</div>
+        <h2 class="section-title">Тренажёр</h2>
+        <p class="section-desc">Рандомный отчёт по каналам. Найдите проблему, поставьте диагноз.</p>
+        <button class="btn-primary" id="btn-new-scenario">Новый сценарий</button>
+    </div>
+
+    <div id="metrics-grid" class="metrics-grid"></div>
+
+    <!-- Thinking Model hint -->
+    <div class="hint-block">
+        <button class="btn-hint" id="btn-show-hint">Подсказка: как думать</button>
+        <div id="hint-content" class="hint-content">
+            <div class="hint-title">Диагностика канала</div>
+            <div class="hint-questions">
+                <div class="hint-q">1. Где узкое место в воронке? <span>Показы → CTR → Клики → Conv Rate → CPA</span></div>
+                <div class="hint-q">2. Что провалилось? <span>Таргетинг, объявление, посадочная или оффер?</span></div>
+                <div class="hint-q">3. Сценарий по каналу. <span>SEO: сниппет, позиция. Контекст: семантика, минус-слова. Медийка: площадки, частота.</span></div>
+                <div class="hint-q">4. Что будет, если не чинить? <span>CTR падает → CPC растёт → CPA взрывается.</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnosis -->
+    <div class="diagnosis-block">
+        <button class="btn-secondary" id="btn-show-diagnosis">Показать диагноз</button>
+        <pre id="diagnosis-content" class="diagnosis-content"></pre>
+    </div>
+
+    <!-- Hypothesis form -->
+    <div id="hypothesis-block" class="hypothesis-block" style="display:none">
+        <div class="hypothesis-title">Сформулируй гипотезу</div>
+        <p class="hint">Формат: Если [действие], то [результат], потому что [причина]</p>
+        <textarea id="hypothesis-text" rows="3" placeholder="Если добавить минус-слова и сузить соответствия, то Conv Rate вырастет, потому что сейчас трафик нецелевой..."></textarea>
+        <button class="btn-primary btn-small" id="btn-save-hypothesis">Готово</button>
+        <div id="hypothesis-result" class="hypothesis-result"></div>
+    </div>
+
+    <script src="js/metrics-channels.js"></script>
+    <script>
+        if (window.Telegram && window.Telegram.WebApp) {
+            var tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+        }
+    </script>
+</body>
+</html>
