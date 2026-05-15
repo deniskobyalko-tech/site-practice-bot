@@ -170,8 +170,19 @@ function findNextUnfinishedPosition() {
 }
 
 async function init() {
+    // Web mode without a saved token → go straight to registration, no API call needed.
+    if (!IS_TG && !localStorage.getItem(WEB_TOKEN_KEY)) {
+        showScreen("register");
+        return;
+    }
     var resp = await api("GET", "/api/express/progress");
     if (resp.status === 404) {
+        showScreen("register");
+        return;
+    }
+    if (resp.status === 401) {
+        // Token expired or invalid — drop it and re-register.
+        if (!IS_TG) localStorage.removeItem(WEB_TOKEN_KEY);
         showScreen("register");
         return;
     }
