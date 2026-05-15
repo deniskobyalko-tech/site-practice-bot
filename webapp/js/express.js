@@ -73,6 +73,15 @@ function escAttr(str) {
         .replace(/>/g, "&gt;");
 }
 
+// Render brief text with clickable links. esc() the text first to keep XSS safe,
+// then linkify http(s):// URLs.
+function briefHtml(text) {
+    var escaped = esc(text);
+    return escaped.replace(/https?:\/\/[^\s<]+/g, function (url) {
+        return '<a href="' + escAttr(url) + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+    });
+}
+
 function topicAt(idx) { return TOPIC_ORDER[idx]; }
 function currentTopic() { return topicAt(state.topicIndex); }
 function currentTask() { return state.tasks[currentTopic()]; }
@@ -182,7 +191,7 @@ function renderStep() {
     document.getElementById("step-progress-fill").style.width =
         (overallStepNumber() / TOTAL_STEPS * 100) + "%";
     document.getElementById("step-title").textContent = step.title;
-    document.getElementById("step-brief").textContent = step.brief;
+    document.getElementById("step-brief").innerHTML = briefHtml(step.brief);
 
     var topicAnswers = state.answersByTopic[task.id] || {};
     var prevAnswers = topicAnswers[step.id] || topicAnswers[String(step.id)] || {};
@@ -353,6 +362,16 @@ document.getElementById("btn-register").addEventListener("click", async function
     await loadTopicsSummary();
     renderIntro();
     showScreen("intro");
+});
+
+// Intercept clicks on brief links so they open in the external browser
+// rather than getting captured by the Telegram webview.
+document.getElementById("step-brief").addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    e.preventDefault();
+    if (tg.openLink) tg.openLink(a.href);
+    else window.open(a.href, "_blank");
 });
 
 init();
