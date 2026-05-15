@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Практика на пару 16.05</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Web-only entry point: no Telegram WebApp SDK. Auth is via /api/web-register + Bearer token. -->
     <link rel="stylesheet" href="css/style.css">
     <style>
         body {
@@ -101,7 +101,7 @@
             gap: 8px;
         }
         .step-fields textarea {
-            font-size: 16px;            /* iOS не зумит при фокусе на 16+ */
+            font-size: 16px;
             line-height: 1.5;
             min-height: 110px;
             padding: 12px 14px;
@@ -112,7 +112,6 @@
             font-size: 15px;
         }
 
-        /* Sticky action bar pinned at the bottom of the viewport. */
         #screen-step { padding-bottom: 96px; }
         .step-actions {
             position: sticky;
@@ -207,6 +206,9 @@
         #screen-intro h1 { font-size: 26px; }
         #screen-intro .hint { font-size: 15px; }
         #screen-intro .btn-primary { font-size: 17px; padding: 16px; font-weight: 600; }
+
+        /* Centre the page on desktop browsers; on mobile body width already constrained. */
+        body { max-width: 480px; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -239,7 +241,7 @@
             <h2>3 темы, по 3 шага каждая</h2>
             <ol id="intro-topics-list"></ol>
         </div>
-        <p class="hint" style="text-align:center;margin-bottom:16px">Темы проходим по порядку. Ответы сохраняются после каждого шага — можно вернуться к окну позже. После последнего шага работа уходит на ручную проверку.</p>
+        <p class="hint" style="text-align:center;margin-bottom:16px">Темы проходим по порядку. Ответы сохраняются после каждого шага — можно вернуться к этой ссылке позже на этом же устройстве. После последнего шага работа уходит на ручную проверку.</p>
         <button class="btn-primary" id="btn-intro-start">Начать</button>
     </div>
 
@@ -263,7 +265,7 @@
     <div id="screen-done" class="screen hidden">
         <div class="done-circle">✓</div>
         <div class="done-title">Спасибо, ваша практика принята!</div>
-        <div class="done-msg">Ответы придут после ручной проверки. Можно закрыть окно.</div>
+        <div class="done-msg">Ответы придут после ручной проверки. Эту вкладку можно закрыть.</div>
         <button class="btn-secondary" id="btn-done-close">Закрыть</button>
     </div>
 

@@ -1,9 +1,35 @@
-var tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+// The page can be opened either inside Telegram WebApp or via a plain web link.
+// Wrap Telegram WebApp APIs with safe fallbacks so the same script works in both modes.
+var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+var IS_TG = !!(tg && tg.initData);
+
+if (tg) {
+    try { tg.ready(); tg.expand(); } catch (_) { /* noop */ }
+}
 
 var API_BASE = "/site-practice";
-var AUTH_HEADER = { Authorization: "tma " + tg.initData };
+var WEB_TOKEN_KEY = "express_web_token";
+
+function getAuthHeader() {
+    if (IS_TG) return { Authorization: "tma " + tg.initData };
+    var token = localStorage.getItem(WEB_TOKEN_KEY);
+    return token ? { Authorization: "Bearer " + token } : {};
+}
+
+function showAlert(msg) {
+    if (tg && tg.showAlert) tg.showAlert(msg);
+    else alert(msg);
+}
+
+function openExternal(url) {
+    if (tg && tg.openLink) tg.openLink(url);
+    else window.open(url, "_blank");
+}
+
+function closeApp() {
+    if (tg && tg.close) tg.close();
+    // In web mode just leave the done screen on; user closes the tab themselves.
+}
 
 // Fixed order — students walk topics sequentially.
 var TOPIC_ORDER = ["content", "ux", "metrics"];
@@ -25,20 +51,21 @@ function showScreen(id) {
         s.classList.add("hidden");
     });
     document.getElementById("screen-" + id).classList.remove("hidden");
-    // Native Telegram BackButton is only meaningful on step screens.
     if (id === "step") {
         updateBackButton();
-    } else {
+    } else if (tg && tg.BackButton) {
         tg.BackButton.hide();
     }
 }
 
 function updateBackButton() {
     var isFirstOverall = state.topicIndex === 0 && state.stepIndex === 0;
-    if (isFirstOverall) tg.BackButton.hide();
-    else tg.BackButton.show();
     var topBtn = document.getElementById("btn-step-back-top");
     if (topBtn) topBtn.classList.toggle("hidden", isFirstOverall);
+    if (tg && tg.BackButton) {
+        if (isFirstOverall) tg.BackButton.hide();
+        else tg.BackButton.show();
+    }
 }
 
 function goBackOneStep() {
@@ -49,11 +76,23 @@ function goBackOneStep() {
     }
 }
 
-tg.BackButton.onClick(goBackOneStep);
+if (tg && tg.BackButton) tg.BackButton.onClick(goBackOneStep);
 document.getElementById("btn-step-back-top").addEventListener("click", goBackOneStep);
 
+// Done screen close button — only meaningful inside Telegram; hide in web mode.
+var btnDoneClose = document.getElementById("btn-done-close");
+if (btnDoneClose) {
+    if (IS_TG) {
+        btnDoneClose.addEventListener("click", function () {
+            if (tg && tg.close) tg.close();
+        });
+    } else {
+        btnDoneClose.style.display = "none";
+    }
+}
+
 async function api(method, path, body) {
-    var opts = { method: method, headers: Object.assign({}, AUTH_HEADER) };
+    var opts = { method: method, headers: Object.assign({}, getAuthHeader()) };
     if (body) {
         opts.headers["Content-Type"] = "application/json";
         opts.body = JSON.stringify(body);
@@ -103,7 +142,7 @@ async function loadAllTasks() {
         if (state.tasks[t]) continue;
         var resp = await api("GET", "/api/express/task/" + t);
         if (!resp.ok) {
-            tg.showAlert("Не удалось загрузить задания");
+            showAlert("Не удалось загрузить задания");
             throw new Error("task load failed");
         }
         state.tasks[t] = await resp.json();
@@ -137,7 +176,7 @@ async function init() {
         return;
     }
     if (!resp.ok) {
-        tg.showAlert("Не удалось загрузить прогресс");
+        showAlert("Не удалось загрузить прогресс");
         return;
     }
     var progress = await resp.json();
@@ -243,7 +282,7 @@ async function saveCurrentStep() {
     var step = currentStep();
     var collected = collectAnswers();
     if (!collected.hasAny) {
-        tg.showAlert("Заполните хотя бы одно поле перед сохранением");
+        showAlert("Заполните хотя бы одно поле перед сохранением");
         return false;
     }
     var resp = await api("POST", "/api/express/step/" + step.id, {
@@ -255,7 +294,7 @@ async function saveCurrentStep() {
         return false;
     }
     if (!resp.ok) {
-        tg.showAlert("Не удалось сохранить — попробуйте ещё раз");
+        showAlert("Не удалось сохранить — попробуйте ещё раз");
         return false;
     }
     var data = await resp.json();
@@ -346,19 +385,39 @@ document.querySelectorAll("#express-group-select .group-btn").forEach(function (
     });
 });
 
+async function registerStudent(name, group) {
+    if (IS_TG) {
+        var resp = await api("POST", "/api/register", { name: name, group: group });
+        return resp.ok;
+    }
+    // Web mode: no Telegram identity, register through /api/web-register and store bearer token.
+    var resp = await fetch(API_BASE + "/api/web-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name, group: group }),
+    });
+    if (!resp.ok) return false;
+    var data = await resp.json();
+    if (data && data.token) {
+        localStorage.setItem(WEB_TOKEN_KEY, data.token);
+        return true;
+    }
+    return false;
+}
+
 document.getElementById("btn-register").addEventListener("click", async function () {
     var name = document.getElementById("express-reg-name").value.trim();
     if (!selectedGroup) {
-        tg.showAlert("Выберите группу");
+        showAlert("Выберите группу");
         return;
     }
     if (!name) {
-        tg.showAlert("Введите ФИО");
+        showAlert("Введите ФИО");
         return;
     }
-    var resp = await api("POST", "/api/register", { name: name, group: selectedGroup });
-    if (!resp.ok) {
-        tg.showAlert("Ошибка регистрации");
+    var ok = await registerStudent(name, selectedGroup);
+    if (!ok) {
+        showAlert("Ошибка регистрации");
         return;
     }
     await loadAllTasks();
@@ -373,8 +432,7 @@ document.getElementById("step-brief").addEventListener("click", function (e) {
     var a = e.target.closest && e.target.closest("a[href]");
     if (!a) return;
     e.preventDefault();
-    if (tg.openLink) tg.openLink(a.href);
-    else window.open(a.href, "_blank");
+    openExternal(a.href);
 });
 
 init();
