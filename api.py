@@ -2,6 +2,7 @@ import csv
 import io
 import json
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 import aiosqlite
@@ -17,6 +18,7 @@ from db import (
     EXPRESS_TOTAL_STEPS,
     get_campaign_scenario, save_campaign_submission, get_campaign_submissions,
     get_campaign_progress, get_campaign_submissions_all, delete_campaign_submissions,
+    save_exam_submission, get_exam_submission, get_exam_submissions_all, delete_exam_submission,
 )
 from quiz_data import get_shuffled_questions, score_answers
 from express_tasks import TOPICS, TOPIC_IDS, get_topic, get_topics_summary
@@ -31,6 +33,19 @@ class RegisterRequest(BaseModel):
 
 def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: int) -> FastAPI:
     app = FastAPI()
+
+    # Static exam page lives on GitHub Pages (deniskobyalko-tech.github.io).
+    # Allow it to hit our API; same domain (alarm-trusty-ru.ru) is unaffected.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "https://deniskobyalko-tech.github.io",
+            "https://alarm-trusty-ru.ru",
+        ],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     async def get_user_id(request: Request) -> tuple[int, str]:
         """Returns (telegram_id, auth_type). auth_type is 'tma' or 'web'."""
@@ -169,6 +184,7 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
             raise HTTPException(404, "Student not found")
         await conn.execute("DELETE FROM express_submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM campaign_submissions WHERE student_id = ?", (student["id"],))
+        await conn.execute("DELETE FROM exam_submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student["id"],))
         await conn.execute("DELETE FROM students WHERE id = ?", (student["id"],))
@@ -522,6 +538,105 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         telegram_id = (await get_user_id(request))[0]
         require_admin(telegram_id)
         await delete_campaign_submissions(conn, student_id)
+        return {"ok": True}
+
+    # ============ Exam (Создание и поддержка сайта, 2026-05-16) ============
+
+    @app.post("/api/exam/submit")
+    async def exam_submit(request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found. Register first.")
+
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise HTTPException(400, "Body must be a JSON object")
+
+        mcq_answers = body.get("mcq_answers") or {}
+        mcq_score = int(body.get("mcq_score") or 0)
+        mcq_total = int(body.get("mcq_total") or 0)
+        open_picked = body.get("open_picked") or []
+        open_answers = body.get("open_answers") or {}
+
+        if not isinstance(mcq_answers, dict) or not isinstance(open_answers, dict):
+            raise HTTPException(400, "mcq_answers and open_answers must be objects")
+        if not isinstance(open_picked, list):
+            raise HTTPException(400, "open_picked must be a list")
+
+        await save_exam_submission(
+            conn,
+            student["id"],
+            mcq_answers,
+            mcq_score,
+            mcq_total,
+            open_picked,
+            open_answers,
+        )
+
+        # Best-effort telegram notification to the teacher.
+        if app.state.bot is not None:
+            try:
+                preview_lines = [
+                    "🎓 Экзамен сдан",
+                    f"Студент: {student['name']} ({student['group_name']})",
+                    f"Часть 1: {mcq_score}/{mcq_total}",
+                    f"Часть 2 — выбраны вопросы №{', №'.join(str(i + 1) for i in open_picked) if open_picked else '—'}",
+                    "",
+                    "Смотри детали в админ Mini App → вкладка «Экзамен».",
+                ]
+                await app.state.bot.send_message(
+                    chat_id=admin_telegram_id,
+                    text="\n".join(preview_lines),
+                )
+            except Exception:
+                pass
+
+        return {"ok": True, "score": mcq_score, "total": mcq_total}
+
+    @app.get("/api/exam/result")
+    async def exam_result(request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        student = await get_student_by_telegram_id(conn, telegram_id)
+        if not student:
+            raise HTTPException(404, "Student not found")
+        sub = await get_exam_submission(conn, student["id"])
+        if not sub:
+            return {"submitted": False}
+        return {
+            "submitted": True,
+            "score": sub["mcq_score"],
+            "total": sub["mcq_total"],
+            "submitted_at": sub["submitted_at"],
+        }
+
+    @app.get("/api/admin/exam/students")
+    async def admin_exam_students(request: Request, group: str | None = None):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        return await get_exam_submissions_all(conn, group=group)
+
+    @app.get("/api/admin/exam/student/{student_id}")
+    async def admin_exam_student_detail(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        sub = await get_exam_submission(conn, student_id)
+        if not sub:
+            raise HTTPException(404, "No exam submission")
+        return {
+            "score": sub["mcq_score"],
+            "total": sub["mcq_total"],
+            "submitted_at": sub["submitted_at"],
+            "mcq_answers": json.loads(sub["mcq_answers"]),
+            "open_picked": json.loads(sub["open_picked"]),
+            "open_answers": json.loads(sub["open_answers"]),
+        }
+
+    @app.post("/api/admin/exam/reset/{student_id}")
+    async def admin_exam_reset(student_id: int, request: Request):
+        telegram_id = (await get_user_id(request))[0]
+        require_admin(telegram_id)
+        await delete_exam_submission(conn, student_id)
         return {"ok": True}
 
     # Store bot instance for notifications

@@ -71,6 +71,18 @@ CREATE TABLE IF NOT EXISTS campaign_submissions (
     submitted_at TEXT NOT NULL,
     UNIQUE(student_id, step)
 );
+
+CREATE TABLE IF NOT EXISTS exam_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL REFERENCES students(id),
+    mcq_answers TEXT NOT NULL,
+    mcq_score INTEGER NOT NULL,
+    mcq_total INTEGER NOT NULL,
+    open_picked TEXT NOT NULL,
+    open_answers TEXT NOT NULL,
+    submitted_at TEXT NOT NULL,
+    UNIQUE(student_id)
+);
 """
 
 
@@ -452,4 +464,74 @@ async def get_campaign_submissions_all(conn, group: str | None = None):
 
 async def delete_campaign_submissions(conn, student_id: int):
     await conn.execute("DELETE FROM campaign_submissions WHERE student_id = ?", (student_id,))
+    await conn.commit()
+
+
+# --- Exam (Создание и поддержка сайта, 2026-05-16) ---
+# One submission per student. Server stores raw answers + auto-score for part 1.
+# Part 2 answers are 2 free-text fields; their question indices (relative to OPEN
+# array on the static site) are kept in open_picked so we can rebuild the prompt.
+
+async def save_exam_submission(
+    conn,
+    student_id: int,
+    mcq_answers: dict,
+    mcq_score: int,
+    mcq_total: int,
+    open_picked: list[int],
+    open_answers: dict,
+) -> int:
+    now = datetime.now(timezone.utc).isoformat()
+    cursor = await conn.execute(
+        """INSERT INTO exam_submissions
+              (student_id, mcq_answers, mcq_score, mcq_total, open_picked, open_answers, submitted_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(student_id) DO UPDATE SET
+              mcq_answers=excluded.mcq_answers,
+              mcq_score=excluded.mcq_score,
+              mcq_total=excluded.mcq_total,
+              open_picked=excluded.open_picked,
+              open_answers=excluded.open_answers,
+              submitted_at=excluded.submitted_at""",
+        (
+            student_id,
+            json.dumps(mcq_answers, ensure_ascii=False),
+            mcq_score,
+            mcq_total,
+            json.dumps(open_picked),
+            json.dumps(open_answers, ensure_ascii=False),
+            now,
+        ),
+    )
+    await conn.commit()
+    return cursor.lastrowid
+
+
+async def get_exam_submission(conn, student_id: int):
+    cursor = await conn.execute(
+        "SELECT * FROM exam_submissions WHERE student_id = ?", (student_id,)
+    )
+    row = await cursor.fetchone()
+    return dict(row) if row else None
+
+
+async def get_exam_submissions_all(conn, group: str | None = None):
+    if group:
+        cursor = await conn.execute(
+            """SELECT es.*, s.name, s.group_name FROM exam_submissions es
+               JOIN students s ON es.student_id = s.id
+               WHERE s.group_name = ? ORDER BY es.submitted_at DESC""",
+            (group,),
+        )
+    else:
+        cursor = await conn.execute(
+            """SELECT es.*, s.name, s.group_name FROM exam_submissions es
+               JOIN students s ON es.student_id = s.id ORDER BY es.submitted_at DESC"""
+        )
+    rows = await cursor.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def delete_exam_submission(conn, student_id: int):
+    await conn.execute("DELETE FROM exam_submissions WHERE student_id = ?", (student_id,))
     await conn.commit()

@@ -211,10 +211,12 @@ document.querySelectorAll(".tab-btn").forEach(function (btn) {
 
         document.getElementById("tab-practice").classList.toggle("hidden", activeTab !== "practice");
         document.getElementById("tab-express").classList.toggle("hidden", activeTab !== "express");
+        document.getElementById("tab-exam").classList.toggle("hidden", activeTab !== "exam");
         document.getElementById("tab-quiz").classList.toggle("hidden", activeTab !== "quiz");
 
         if (activeTab === "quiz") loadQuizStudents();
         if (activeTab === "express") loadExpressStudents();
+        if (activeTab === "exam") loadExamStudents();
     });
 });
 
@@ -441,3 +443,112 @@ document.getElementById("btn-express-export").addEventListener("click", async fu
 });
 
 document.getElementById("express-group-filter").addEventListener("change", loadExpressStudents);
+
+// --- Exam tab («Создание и поддержка сайта», 2026-05-16) ---
+
+async function loadExamStudents() {
+    var group = document.getElementById("exam-group-filter").value;
+    var query = group ? "?group=" + encodeURIComponent(group) : "";
+    try {
+        var students = await api("GET", "/api/admin/exam/students" + query);
+        var list = document.getElementById("exam-students-list");
+        var empty = document.getElementById("exam-empty-state");
+
+        if (students.length === 0) {
+            list.innerHTML = "";
+            empty.classList.remove("hidden");
+            return;
+        }
+
+        empty.classList.add("hidden");
+        list.innerHTML = students.map(function (s) {
+            return '<div class="student-row" data-exam-sid="' + s.student_id + '">' +
+                '<div class="student-meta">' +
+                    '<div>' +
+                        '<div class="student-name">' + esc(s.name) + '</div>' +
+                        '<div class="student-group">' + esc(s.group_name) + '</div>' +
+                    '</div>' +
+                    '<span class="status-badge status-submitted">' + s.mcq_score + '/' + s.mcq_total + '</span>' +
+                '</div>' +
+                '<div class="student-detail" id="exam-detail-' + s.student_id + '"></div>' +
+            '</div>';
+        }).join("");
+
+        list.querySelectorAll(".student-row").forEach(function (row) {
+            row.addEventListener("click", function () {
+                toggleExamDetail(row.dataset.examSid);
+            });
+        });
+    } catch (e) {
+        tg.showAlert("Ошибка: " + e.message);
+    }
+}
+
+async function toggleExamDetail(studentId) {
+    var detail = document.getElementById("exam-detail-" + studentId);
+    if (detail.classList.contains("open")) {
+        detail.classList.remove("open");
+        return;
+    }
+    try {
+        var data = await api("GET", "/api/admin/exam/student/" + studentId);
+        var html = '';
+        html += '<div style="margin:8px 0 12px;color:var(--link);font-weight:600;font-size:14px">' +
+            'Часть 1: ' + data.score + '/' + data.total + '</div>';
+
+        // MCQ answers with correct-answer indication. Server stores raw answers
+        // as {qid: option_idx_string}; meta about questions/correct lives on
+        // the static exam page, so here we just show "what student picked".
+        html += '<div style="margin-bottom:14px">';
+        Object.keys(data.mcq_answers).sort(function (a, b) { return +a - +b; }).forEach(function (k) {
+            var picked = data.mcq_answers[k];
+            html += '<div class="detail-answer" style="margin:4px 0">Q' + (+k + 1) +
+                ': <strong>' + esc(picked === null || picked === undefined ? "—" : ("вариант " + (+picked + 1))) +
+                '</strong></div>';
+        });
+        html += '</div>';
+
+        // Open answers
+        html += '<div style="margin:14px 0 8px;color:var(--link);font-weight:600;font-size:14px">' +
+            'Часть 2: развёрнутые ответы</div>';
+        var keys = Object.keys(data.open_answers);
+        if (keys.length === 0) {
+            html += '<div class="detail-answer">— нет ответов</div>';
+        } else {
+            keys.forEach(function (k) {
+                var text = data.open_answers[k] || "";
+                html += '<div class="detail-answer" style="white-space:pre-wrap;color:var(--text);background:var(--secondary-bg);padding:10px 12px;border-radius:8px;margin:6px 0;font-size:13px">';
+                html += '<strong style="display:block;margin-bottom:6px;color:var(--link)">Вопрос #' + (+k + 1) + '</strong>';
+                html += esc(text || "—");
+                html += '</div>';
+            });
+        }
+
+        html += '<div style="margin-top:10px;color:var(--hint);font-size:12px">Сдано: ' + esc(data.submitted_at || "") + '</div>';
+        html += '<button class="btn-reset-exam" data-sid="' + studentId + '" style="margin-top:8px;padding:8px 16px;background:transparent;border:1px solid #f44336;color:#f44336;border-radius:8px;font-size:13px;cursor:pointer">Сбросить экзамен</button>';
+        detail.innerHTML = html;
+        detail.querySelector(".btn-reset-exam").addEventListener("click", function (e) {
+            e.stopPropagation();
+            resetExam(studentId);
+        });
+        detail.classList.add("open");
+    } catch (e) {
+        detail.innerHTML = '<div class="detail-answer">Ошибка загрузки</div>';
+        detail.classList.add("open");
+    }
+}
+
+async function resetExam(studentId) {
+    if (!confirm("Сбросить экзамен этого студента? Он сможет пересдать.")) return;
+    try {
+        await fetch(API_BASE + "/api/admin/exam/reset/" + studentId, {
+            method: "POST",
+            headers: AUTH_HEADER,
+        });
+        loadExamStudents();
+    } catch (e) {
+        tg.showAlert("Ошибка: " + e.message);
+    }
+}
+
+document.getElementById("exam-group-filter").addEventListener("change", loadExamStudents);

@@ -173,6 +173,7 @@ async def reset_tests(update: Update, context: ContextTypes.DEFAULT_TYPE):
     student_id, name, group_name = row[0], row[1], row[2]
     await conn.execute("DELETE FROM express_submissions WHERE student_id = ?", (student_id,))
     await conn.execute("DELETE FROM campaign_submissions WHERE student_id = ?", (student_id,))
+    await conn.execute("DELETE FROM exam_submissions WHERE student_id = ?", (student_id,))
     await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student_id,))
     await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student_id,))
     await conn.commit()
