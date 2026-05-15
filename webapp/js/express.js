@@ -25,7 +25,29 @@ function showScreen(id) {
         s.classList.add("hidden");
     });
     document.getElementById("screen-" + id).classList.remove("hidden");
+    // Native Telegram BackButton is only meaningful on step screens.
+    if (id === "step") {
+        updateBackButton();
+    } else {
+        tg.BackButton.hide();
+    }
 }
+
+function updateBackButton() {
+    var isFirstOverall = state.topicIndex === 0 && state.stepIndex === 0;
+    if (isFirstOverall) tg.BackButton.hide();
+    else tg.BackButton.show();
+}
+
+function goBackOneStep() {
+    preserveCurrentDraftInState();
+    if (rewindPosition()) {
+        renderStep();
+        updateBackButton();
+    }
+}
+
+tg.BackButton.onClick(goBackOneStep);
 
 async function api(method, path, body) {
     var opts = { method: method, headers: Object.assign({}, AUTH_HEADER) };
@@ -181,10 +203,7 @@ function renderStep() {
     }).join("");
     document.getElementById("step-fields").innerHTML = fieldsHtml;
 
-    var backBtn = document.getElementById("btn-step-back");
-    var isFirstOverall = state.topicIndex === 0 && state.stepIndex === 0;
-    backBtn.disabled = isFirstOverall;
-    backBtn.style.opacity = isFirstOverall ? "0.4" : "1";
+    updateBackButton();
 
     var nextBtn = document.getElementById("btn-step-next");
     var isLastOverall = state.topicIndex === TOPIC_ORDER.length - 1
@@ -295,10 +314,6 @@ document.getElementById("btn-step-next").addEventListener("click", async functio
     }
 });
 
-document.getElementById("btn-step-back").addEventListener("click", function () {
-    preserveCurrentDraftInState();
-    if (rewindPosition()) renderStep();
-});
 
 document.getElementById("btn-intro-start").addEventListener("click", function () {
     state.topicIndex = 0;
