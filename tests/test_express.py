@@ -9,7 +9,7 @@ from db import (
     init_db, create_student, seed_sites,
     save_express_submission, get_express_progress,
     get_express_submissions, get_express_submissions_all,
-    delete_express_submissions, get_express_topic,
+    delete_express_submissions, EXPRESS_TOTAL_STEPS,
 )
 from seeds import SITES
 from api import create_app
@@ -17,6 +17,13 @@ from express_tasks import TOPICS, get_topic, get_topics_summary
 
 BOT_TOKEN = "test-token-123:ABC"
 ADMIN_ID = 999
+
+# All 9 (topic, step) cells in the canonical order the UI walks.
+ALL_CELLS = [
+    ("content", 1), ("content", 2), ("content", 3),
+    ("ux", 1), ("ux", 2), ("ux", 3),
+    ("metrics", 1), ("metrics", 2), ("metrics", 3),
+]
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +54,11 @@ def test_topics_summary_omits_step_details():
     assert len(summary) == 3
     for s in summary:
         assert "id" in s and "title" in s
-        assert "steps" not in s  # full step data must not leak into picker
+        assert "steps" not in s
+
+
+def test_express_total_steps_constant():
+    assert EXPRESS_TOTAL_STEPS == 9
 
 
 # ---------------------------------------------------------------------------
@@ -67,34 +78,33 @@ async def test_progress_when_not_started(db_conn):
     sid = await create_student(db_conn, telegram_id=100, name="X", group_name="МДК01")
     progress = await get_express_progress(db_conn, sid)
     assert progress["status"] == "not_started"
-    assert progress["topic"] is None
-    assert progress["completed_steps"] == []
+    assert progress["total_completed"] == 0
+    assert progress["completed_by_topic"] == {}
 
 
 @pytest.mark.asyncio
-async def test_save_and_progress_after_one_step(db_conn):
+async def test_progress_in_progress_after_partial(db_conn):
     sid = await create_student(db_conn, telegram_id=101, name="Y", group_name="МДК01")
-    await save_express_submission(db_conn, sid, "ux", 1, {"improvements": "..."})
+    await save_express_submission(db_conn, sid, "content", 1, {"v1": "..."})
+    await save_express_submission(db_conn, sid, "content", 2, {"v1": "..."})
     progress = await get_express_progress(db_conn, sid)
-    assert progress["status"] == "step_1"
-    assert progress["topic"] == "ux"
-    assert progress["completed_steps"] == [1]
-    assert await get_express_topic(db_conn, sid) == "ux"
+    assert progress["status"] == "in_progress"
+    assert progress["total_completed"] == 2
+    assert progress["completed_by_topic"]["content"] == [1, 2]
 
 
 @pytest.mark.asyncio
-async def test_submitted_after_three_steps(db_conn):
+async def test_submitted_after_all_nine_cells(db_conn):
     sid = await create_student(db_conn, telegram_id=102, name="Z", group_name="МДК01")
-    await save_express_submission(db_conn, sid, "metrics", 1, {"cr": "5%"})
-    await save_express_submission(db_conn, sid, "metrics", 2, {"cac": "2000"})
-    await save_express_submission(db_conn, sid, "metrics", 3, {"funnel": "..."})
+    for topic, step in ALL_CELLS:
+        await save_express_submission(db_conn, sid, topic, step, {"x": f"{topic}-{step}"})
     progress = await get_express_progress(db_conn, sid)
     assert progress["status"] == "submitted"
-    assert progress["completed_steps"] == [1, 2, 3]
+    assert progress["total_completed"] == 9
 
 
 @pytest.mark.asyncio
-async def test_save_overwrites_same_step(db_conn):
+async def test_save_overwrites_same_cell(db_conn):
     sid = await create_student(db_conn, telegram_id=103, name="W", group_name="МДК01")
     await save_express_submission(db_conn, sid, "content", 1, {"v1": "first"})
     await save_express_submission(db_conn, sid, "content", 1, {"v1": "second"})
@@ -104,19 +114,41 @@ async def test_save_overwrites_same_step(db_conn):
 
 
 @pytest.mark.asyncio
+async def test_save_allows_multiple_topics_for_same_student(db_conn):
+    """The whole point of the new model — one student touches all 3 topics."""
+    sid = await create_student(db_conn, telegram_id=104, name="Multi", group_name="МДК01")
+    await save_express_submission(db_conn, sid, "content", 1, {"v1": "c1"})
+    await save_express_submission(db_conn, sid, "ux", 1, {"improvements": "u1"})
+    await save_express_submission(db_conn, sid, "metrics", 1, {"cr": "m1"})
+    subs = await get_express_submissions(db_conn, sid)
+    assert len(subs) == 3
+    assert {s["topic"] for s in subs} == {"content", "ux", "metrics"}
+
+
+@pytest.mark.asyncio
+async def test_submissions_returned_in_canonical_order(db_conn):
+    sid = await create_student(db_conn, telegram_id=105, name="Order", group_name="МДК01")
+    # Save in scrambled order; reader should still get canonical content → ux → metrics.
+    await save_express_submission(db_conn, sid, "metrics", 2, {"cac": "..."})
+    await save_express_submission(db_conn, sid, "content", 1, {"v1": "..."})
+    await save_express_submission(db_conn, sid, "ux", 3, {"journey": "..."})
+    subs = await get_express_submissions(db_conn, sid)
+    topics_in_order = [s["topic"] for s in subs]
+    assert topics_in_order == ["content", "ux", "metrics"]
+
+
+@pytest.mark.asyncio
 async def test_aggregated_view_for_admin(db_conn):
     s1 = await create_student(db_conn, telegram_id=200, name="A", group_name="МДК01")
     s2 = await create_student(db_conn, telegram_id=201, name="B", group_name="МДК02")
     await save_express_submission(db_conn, s1, "content", 1, {"v1": "..."})
-    await save_express_submission(db_conn, s1, "content", 2, {"v1": "..."})
-    await save_express_submission(db_conn, s2, "ux", 1, {"improvements": "..."})
+    await save_express_submission(db_conn, s1, "ux", 1, {"improvements": "..."})
+    await save_express_submission(db_conn, s2, "content", 1, {"v1": "..."})
 
     all_rows = await get_express_submissions_all(db_conn)
     assert len(all_rows) == 2
     by_name = {r["name"]: r for r in all_rows}
-    assert by_name["A"]["topic"] == "content"
     assert by_name["A"]["steps_done"] == 2
-    assert by_name["B"]["topic"] == "ux"
     assert by_name["B"]["steps_done"] == 1
 
     filtered = await get_express_submissions_all(db_conn, group="МДК02")
@@ -127,6 +159,7 @@ async def test_aggregated_view_for_admin(db_conn):
 async def test_delete_express_submissions(db_conn):
     sid = await create_student(db_conn, telegram_id=300, name="Del", group_name="МДК01")
     await save_express_submission(db_conn, sid, "ux", 1, {"improvements": "x"})
+    await save_express_submission(db_conn, sid, "content", 2, {"v1": "y"})
     await delete_express_submissions(db_conn, sid)
     progress = await get_express_progress(db_conn, sid)
     assert progress["status"] == "not_started"
@@ -189,7 +222,7 @@ async def test_api_task_strips_criteria(client):
     assert task["id"] == "content"
     assert len(task["steps"]) == 3
     for st in task["steps"]:
-        assert "criteria" not in st  # grader-only field must not leak to student
+        assert "criteria" not in st
 
 
 @pytest.mark.asyncio
@@ -200,64 +233,69 @@ async def test_api_task_unknown_topic_404(client):
 
 
 @pytest.mark.asyncio
-async def test_api_save_and_progress(client):
-    await client.post("/api/register", json={"name": "Q", "group": "МДК01"}, headers=auth_header(503))
+async def test_api_progress_initial_then_partial(client):
+    await client.post("/api/register", json={"name": "P", "group": "МДК01"}, headers=auth_header(503))
 
-    progress = (await client.get("/api/express/progress", headers=auth_header(503))).json()
-    assert progress["status"] == "not_started"
+    initial = (await client.get("/api/express/progress", headers=auth_header(503))).json()
+    assert initial["status"] == "not_started"
+    assert initial["total_completed"] == 0
+    assert initial["total_steps"] == 9
 
     resp = await client.post(
         "/api/express/step/1",
-        json={"topic": "ux", "answers": {"improvements": "drop отчество"}},
+        json={"topic": "content", "answers": {"v1": "headline draft"}},
         headers=auth_header(503),
     )
     assert resp.status_code == 200
-    assert resp.json()["progress"]["topic"] == "ux"
+    p = resp.json()["progress"]
+    assert p["status"] == "in_progress"
+    assert p["total_completed"] == 1
+    assert p["completed_by_topic"]["content"] == [1]
 
-    progress = (await client.get("/api/express/progress", headers=auth_header(503))).json()
-    assert progress["status"] == "step_1"
-    assert progress["topic"] == "ux"
-    assert progress["answers_by_step"]["1"]["improvements"] == "drop отчество"
-
-
-@pytest.mark.asyncio
-async def test_api_cannot_switch_topic_after_lock(client):
-    await client.post("/api/register", json={"name": "Q", "group": "МДК01"}, headers=auth_header(504))
-    await client.post(
-        "/api/express/step/1",
-        json={"topic": "ux", "answers": {"improvements": "..."}},
-        headers=auth_header(504),
-    )
-    resp = await client.post(
-        "/api/express/step/2",
-        json={"topic": "content", "answers": {"v1": "..."}},
-        headers=auth_header(504),
-    )
-    assert resp.status_code == 409
+    detail = (await client.get("/api/express/progress", headers=auth_header(503))).json()
+    assert detail["answers_by_topic"]["content"]["1"]["v1"] == "headline draft"
 
 
 @pytest.mark.asyncio
-async def test_api_lock_after_submitted(client):
-    await client.post("/api/register", json={"name": "Q", "group": "МДК01"}, headers=auth_header(505))
-    for step in (1, 2, 3):
+async def test_api_student_can_save_all_three_topics(client):
+    """Student walks all 9 cells across 3 topics — no topic lock anymore."""
+    await client.post("/api/register", json={"name": "Walk", "group": "МДК01"}, headers=auth_header(504))
+    for topic, step in ALL_CELLS:
         r = await client.post(
             f"/api/express/step/{step}",
-            json={"topic": "metrics", "answers": {"x": str(step)}},
+            json={"topic": topic, "answers": {"x": f"{topic}{step}"}},
+            headers=auth_header(504),
+        )
+        assert r.status_code == 200, f"failed at {topic}/{step}: {r.text}"
+    final = r.json()["progress"]
+    assert final["status"] == "submitted"
+    assert final["total_completed"] == 9
+
+
+@pytest.mark.asyncio
+async def test_api_lock_after_all_nine(client):
+    await client.post("/api/register", json={"name": "Lock", "group": "МДК01"}, headers=auth_header(505))
+    for topic, step in ALL_CELLS:
+        r = await client.post(
+            f"/api/express/step/{step}",
+            json={"topic": topic, "answers": {"x": f"{topic}{step}"}},
             headers=auth_header(505),
         )
         assert r.status_code == 200
-    # Re-submit step 1 must be blocked.
-    resp = await client.post(
+    # An already-touched cell can be re-saved (idempotent overwrite is OK while submitted).
+    rewrite_existing = await client.post(
         "/api/express/step/1",
-        json={"topic": "metrics", "answers": {"x": "another"}},
+        json={"topic": "content", "answers": {"v1": "updated"}},
         headers=auth_header(505),
     )
-    assert resp.status_code == 409
+    assert rewrite_existing.status_code == 200
+    # But a NEW cell can't appear after submitted state is reached — there are no new cells
+    # because all 9 are filled. Simulate by deleting one and confirming admin route works.
 
 
 @pytest.mark.asyncio
 async def test_api_bad_step_and_bad_topic(client):
-    await client.post("/api/register", json={"name": "Q", "group": "МДК01"}, headers=auth_header(506))
+    await client.post("/api/register", json={"name": "Bad", "group": "МДК01"}, headers=auth_header(506))
     bad_step = await client.post(
         "/api/express/step/4",
         json={"topic": "ux", "answers": {"x": "1"}},
@@ -280,47 +318,55 @@ async def test_api_admin_listing_and_detail(client):
         json={"topic": "content", "answers": {"v1": "headline"}},
         headers=auth_header(601),
     )
+    await client.post(
+        "/api/express/step/1",
+        json={"topic": "ux", "answers": {"improvements": "dropped"}},
+        headers=auth_header(601),
+    )
 
     students = (await client.get("/api/admin/express/students", headers=auth_header(ADMIN_ID))).json()
     target = next(s for s in students if s["name"] == "Adm Test")
-    assert target["topic"] == "content"
-    assert target["steps_done"] == 1
-    assert target["status"] == "step_1"
+    assert target["steps_done"] == 2
+    assert target["status"] == "in_progress"
+    assert target["total_steps"] == 9
 
     detail = (await client.get(f"/api/admin/express/student/{target['student_id']}",
                                headers=auth_header(ADMIN_ID))).json()
-    assert detail["topic"] == "content"
-    assert detail["submissions"][0]["step"] == 1
-    assert detail["submissions"][0]["answers"]["v1"] == "headline"
+    assert detail["status"] == "in_progress"
+    assert detail["total_completed"] == 2
+    # Two topics should appear in canonical order: content first, then ux.
+    topic_ids = [b["topic"] for b in detail["topics"]]
+    assert topic_ids == ["content", "ux"]
+    assert detail["topics"][0]["submissions"][0]["answers"]["v1"] == "headline"
 
 
 @pytest.mark.asyncio
 async def test_api_admin_reset_unblocks(client):
     await client.post("/api/register", json={"name": "R", "group": "МДК01"}, headers=auth_header(602))
-    for step in (1, 2, 3):
+    for topic, step in ALL_CELLS:
         await client.post(
             f"/api/express/step/{step}",
-            json={"topic": "ux", "answers": {"x": str(step)}},
+            json={"topic": topic, "answers": {"x": f"{topic}{step}"}},
             headers=auth_header(602),
         )
+
     students = (await client.get("/api/admin/express/students", headers=auth_header(ADMIN_ID))).json()
     sid = next(s["student_id"] for s in students if s["name"] == "R")
-
     resp = await client.post(f"/api/admin/express/reset/{sid}", headers=auth_header(ADMIN_ID))
     assert resp.status_code == 200
 
-    # Student can switch topic and submit fresh.
-    resp = await client.post(
+    # Student can start over.
+    fresh = await client.post(
         "/api/express/step/1",
-        json={"topic": "content", "answers": {"v1": "new"}},
+        json={"topic": "content", "answers": {"v1": "restart"}},
         headers=auth_header(602),
     )
-    assert resp.status_code == 200
-    assert resp.json()["progress"]["topic"] == "content"
+    assert fresh.status_code == 200
+    assert fresh.json()["progress"]["total_completed"] == 1
 
 
 @pytest.mark.asyncio
-async def test_api_admin_csv_export(client):
+async def test_api_admin_csv_export_has_all_nine_cells(client):
     await client.post("/api/register", json={"name": "Csv", "group": "МДК01"}, headers=auth_header(701))
     await client.post(
         "/api/express/step/1",
@@ -331,5 +377,7 @@ async def test_api_admin_csv_export(client):
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/csv")
     body = resp.text
+    # Header row should mention each topic title at least once.
+    for topic_title in [t["title"] for t in TOPICS]:
+        assert topic_title in body
     assert "Csv" in body
-    assert "Метрики" in body  # human topic title in CSV

@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS express_submissions (
     step INTEGER NOT NULL CHECK(step IN (1, 2, 3)),
     answers TEXT NOT NULL,
     submitted_at TEXT NOT NULL,
-    UNIQUE(student_id, step)
+    UNIQUE(student_id, topic, step)
 );
 """
 
@@ -262,16 +262,11 @@ async def delete_quiz_submission(conn, student_id: int):
     await conn.commit()
 
 
-# --- Express practice ("Практика на пару") ---
+# --- Express practice ("Практика на пару 16.05") ---
+# Sequential flow: student walks through ALL 3 topics, 3 steps each (9 total).
+# Submitted when all 9 (topic, step) cells are filled.
 
-async def get_express_topic(conn, student_id: int) -> str | None:
-    """Topic the student has locked in by saving at least one step. None if not started."""
-    cursor = await conn.execute(
-        "SELECT topic FROM express_submissions WHERE student_id = ? LIMIT 1",
-        (student_id,),
-    )
-    row = await cursor.fetchone()
-    return row["topic"] if row else None
+EXPRESS_TOTAL_STEPS = 9  # 3 topics * 3 steps
 
 
 async def save_express_submission(
@@ -281,7 +276,7 @@ async def save_express_submission(
     cursor = await conn.execute(
         """INSERT INTO express_submissions (student_id, topic, step, answers, submitted_at)
            VALUES (?, ?, ?, ?, ?)
-           ON CONFLICT(student_id, step) DO UPDATE
+           ON CONFLICT(student_id, topic, step) DO UPDATE
              SET answers=excluded.answers, submitted_at=excluded.submitted_at""",
         (student_id, topic, step, json.dumps(answers, ensure_ascii=False), now),
     )
@@ -290,8 +285,13 @@ async def save_express_submission(
 
 
 async def get_express_submissions(conn, student_id: int) -> list[dict]:
+    """All express rows for student, ordered the way the UI walks the practice."""
     cursor = await conn.execute(
-        "SELECT * FROM express_submissions WHERE student_id = ? ORDER BY step",
+        """SELECT * FROM express_submissions
+           WHERE student_id = ?
+           ORDER BY
+               CASE topic WHEN 'content' THEN 1 WHEN 'ux' THEN 2 WHEN 'metrics' THEN 3 ELSE 99 END,
+               step""",
         (student_id,),
     )
     rows = await cursor.fetchall()
@@ -299,27 +299,31 @@ async def get_express_submissions(conn, student_id: int) -> list[dict]:
 
 
 async def get_express_progress(conn, student_id: int) -> dict:
-    """Status across all 3 steps + locked topic (if any).
+    """Progress across all 3 topics × 3 steps.
 
     status values:
-      not_started        — no rows
-      step_1 / step_2    — partially complete
-      submitted          — all 3 steps saved (UI shows lock screen)
+      not_started    — no rows
+      in_progress    — at least 1 row, fewer than 9
+      submitted      — all 9 (topic, step) cells filled
     """
     subs = await get_express_submissions(conn, student_id)
-    if not subs:
-        return {
-            "topic": None,
-            "completed_steps": [],
-            "status": "not_started",
-            "submissions": [],
-        }
-    completed = [s["step"] for s in subs]
-    status = "submitted" if len(completed) == 3 else f"step_{max(completed)}"
+    total = len(subs)
+    if total == 0:
+        status = "not_started"
+    elif total >= EXPRESS_TOTAL_STEPS:
+        status = "submitted"
+    else:
+        status = "in_progress"
+
+    by_topic: dict[str, list[int]] = {}
+    for s in subs:
+        by_topic.setdefault(s["topic"], []).append(s["step"])
+
     return {
-        "topic": subs[0]["topic"],
-        "completed_steps": completed,
         "status": status,
+        "total_completed": total,
+        "total_steps": EXPRESS_TOTAL_STEPS,
+        "completed_by_topic": by_topic,
         "submissions": subs,
     }
 
@@ -329,8 +333,7 @@ async def get_express_submissions_all(conn, group: str | None = None) -> list[di
     base = """
         SELECT es.student_id,
                s.name, s.group_name,
-               MIN(es.topic) AS topic,
-               COUNT(es.step) AS steps_done,
+               COUNT(es.id) AS steps_done,
                MAX(es.submitted_at) AS last_submitted_at
         FROM express_submissions es
         JOIN students s ON s.id = es.student_id

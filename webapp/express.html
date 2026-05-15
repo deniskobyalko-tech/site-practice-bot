@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Практика на пару</title>
+    <title>Практика на пару 16.05</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
@@ -16,65 +16,11 @@
             text-transform: uppercase;
         }
 
-        .topic-card {
-            background: var(--secondary-bg);
-            border: 2px solid transparent;
-            border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s, transform 0.15s;
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-        }
-        .topic-card:hover { border-color: var(--hint); }
-        .topic-card:active { transform: scale(0.99); }
-        .topic-card .emoji {
-            font-size: 28px;
-            line-height: 1;
-            flex-shrink: 0;
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            background: var(--section-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .topic-card .body { flex: 1; }
-        .topic-card .title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        .topic-card .short {
-            font-size: 13px;
-            color: var(--hint);
-            line-height: 1.4;
-        }
-        .topic-card .meta {
-            font-size: 12px;
-            color: var(--hint);
-            margin-top: 8px;
-            display: flex;
-            gap: 12px;
-        }
-        .topic-card .meta span::before {
-            content: "·";
-            margin-right: 8px;
-            color: var(--hint);
-        }
-        .topic-card .meta span:first-child::before {
-            content: "";
-            margin: 0;
-        }
-
         .progress-bar-track {
             height: 4px;
             background: var(--secondary-bg);
             border-radius: 2px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             overflow: hidden;
         }
         .progress-bar-fill {
@@ -86,8 +32,16 @@
         .step-progress {
             color: var(--hint);
             font-size: 13px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .step-progress .topic-label {
+            color: var(--text);
+            font-weight: 600;
         }
 
         .step-title {
@@ -124,7 +78,6 @@
         .step-actions .btn-secondary { flex: 0 0 auto; }
         .step-actions .btn-primary { flex: 1; }
 
-        /* Saved indicator */
         .saved-pill {
             display: inline-block;
             background: rgba(94, 187, 255, 0.15);
@@ -136,7 +89,18 @@
             font-weight: 600;
         }
 
-        /* Done screen */
+        .topic-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--secondary-bg);
+            color: var(--text);
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
         #screen-done {
             display: flex;
             flex-direction: column;
@@ -166,21 +130,29 @@
             max-width: 320px;
             margin-bottom: 28px;
         }
-
-        /* Picker subtitle */
-        #screen-pick { padding-top: 8px; }
-        .pick-subtitle {
-            color: var(--hint);
+        .intro-card {
+            background: var(--secondary-bg);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 18px;
             font-size: 14px;
             line-height: 1.5;
-            margin-bottom: 20px;
+            color: var(--text);
         }
+        .intro-card h2 { font-size: 16px; margin-bottom: 10px; }
+        .intro-card ol {
+            margin: 6px 0 0 18px;
+            padding: 0;
+            color: var(--hint);
+        }
+        .intro-card ol li { margin-bottom: 4px; }
+        .intro-card ol li strong { color: var(--text); }
     </style>
 </head>
 <body>
     <!-- Registration -->
     <div id="screen-register" class="screen hidden">
-        <div class="express-header">Практика на пару</div>
+        <div class="express-header">Практика на пару 16.05</div>
         <h1 style="text-align:center;margin-bottom:8px">Регистрация</h1>
         <p class="hint" style="text-align:center;margin-bottom:24px">Укажите группу и ФИО — этого достаточно</p>
         <div class="form-group">
@@ -199,17 +171,24 @@
         <button class="btn-primary" id="btn-register">Продолжить</button>
     </div>
 
-    <!-- Topic picker -->
-    <div id="screen-pick" class="screen hidden">
-        <div class="express-header">Практика на пару</div>
-        <h1 style="text-align:center;margin-bottom:8px">Выберите тему</h1>
-        <p class="pick-subtitle" style="text-align:center">Одна тема — три шага с открытыми ответами. После сдачи ответы уходят на ручную проверку.</p>
-        <div id="topics-list"></div>
+    <!-- Intro / start -->
+    <div id="screen-intro" class="screen hidden">
+        <div class="express-header">Практика на пару 16.05</div>
+        <h1 style="text-align:center;margin-bottom:12px">Готовы начать?</h1>
+        <div class="intro-card">
+            <h2>3 темы, по 3 шага каждая</h2>
+            <ol id="intro-topics-list"></ol>
+        </div>
+        <p class="hint" style="text-align:center;margin-bottom:16px">Темы проходим по порядку. Ответы сохраняются после каждого шага — можно вернуться к окну позже. После последнего шага работа уходит на ручную проверку.</p>
+        <button class="btn-primary" id="btn-intro-start">Начать</button>
     </div>
 
     <!-- Step screen -->
     <div id="screen-step" class="screen hidden">
-        <div class="step-progress" id="step-progress">Шаг 1 из 3</div>
+        <div class="step-progress">
+            <span id="step-progress-label">Шаг 1 из 9</span>
+            <span class="topic-pill" id="topic-pill"></span>
+        </div>
         <div class="progress-bar-track"><div class="progress-bar-fill" id="step-progress-fill"></div></div>
         <div class="step-title" id="step-title"></div>
         <div class="step-brief" id="step-brief"></div>

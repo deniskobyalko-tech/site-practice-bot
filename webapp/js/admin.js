@@ -344,16 +344,15 @@ async function loadExpressStudents() {
 
         empty.classList.add("hidden");
         list.innerHTML = students.map(function (s) {
+            var total = s.total_steps || 9;
             var statusLabel = s.status === "submitted"
-                ? "Сдано"
-                : "Шаг " + s.steps_done + "/3";
+                ? "Сдано " + s.steps_done + "/" + total
+                : "Идёт " + s.steps_done + "/" + total;
             return '<div class="student-row" data-express-sid="' + s.student_id + '">' +
                 '<div class="student-meta">' +
                     '<div>' +
                         '<div class="student-name">' + esc(s.name) + '</div>' +
-                        '<div class="student-group">' +
-                            esc(s.group_name) + ' · ' + esc(s.topic_title) +
-                        '</div>' +
+                        '<div class="student-group">' + esc(s.group_name) + '</div>' +
                     '</div>' +
                     '<span class="status-badge status-' + s.status + '">' + statusLabel + '</span>' +
                 '</div>' +
@@ -379,20 +378,24 @@ async function toggleExpressDetail(studentId) {
     }
     try {
         var data = await api("GET", "/api/admin/express/student/" + studentId);
-        var html = '<div style="margin:6px 0 10px;color:var(--link);font-size:13px;font-weight:600">Тема: ' + esc(data.topic_title) + '</div>';
-        data.submissions.forEach(function (s) {
-            html += '<div class="detail-step">';
-            html += '<h4>Шаг ' + s.step + ': ' + esc(s.step_title) + '</h4>';
-            if (s.criteria) {
-                html += '<div class="detail-answer" style="font-style:italic;color:var(--hint)">Критерий: ' + esc(s.criteria) + '</div>';
-            }
-            s.fields.forEach(function (f) {
-                var val = s.answers[f.id] || "";
-                if (!val) return;
-                html += '<div class="detail-answer" style="margin:6px 0 0"><strong>' + esc(f.label) + ':</strong></div>';
-                html += '<div class="detail-answer" style="white-space:pre-wrap;color:var(--text);background:var(--secondary-bg);padding:8px 10px;border-radius:6px;margin-top:4px;font-size:13px">' + esc(val) + '</div>';
+        var html = '';
+        (data.topics || []).forEach(function (block) {
+            html += '<div style="margin:14px 0 6px;color:var(--link);font-size:13px;font-weight:600">' +
+                esc(block.emoji || "") + " " + esc(block.topic_title) + '</div>';
+            block.submissions.forEach(function (s) {
+                html += '<div class="detail-step">';
+                html += '<h4>Шаг ' + s.step + ': ' + esc(s.step_title) + '</h4>';
+                if (s.criteria) {
+                    html += '<div class="detail-answer" style="font-style:italic;color:var(--hint)">Критерий: ' + esc(s.criteria) + '</div>';
+                }
+                s.fields.forEach(function (f) {
+                    var val = s.answers[f.id] || "";
+                    if (!val) return;
+                    html += '<div class="detail-answer" style="margin:6px 0 0"><strong>' + esc(f.label) + ':</strong></div>';
+                    html += '<div class="detail-answer" style="white-space:pre-wrap;color:var(--text);background:var(--secondary-bg);padding:8px 10px;border-radius:6px;margin-top:4px;font-size:13px">' + esc(val) + '</div>';
+                });
+                html += '</div>';
             });
-            html += '</div>';
         });
         html += '<button class="btn-reset-express" data-sid="' + studentId + '" style="margin-top:8px;padding:8px 16px;background:transparent;border:1px solid #f44336;color:#f44336;border-radius:8px;font-size:13px;cursor:pointer">Сбросить</button>';
         detail.innerHTML = html;
