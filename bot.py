@@ -20,22 +20,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
         ])
     else:
-        conn: aiosqlite.Connection = context.bot_data["db_conn"]
-        paused = await is_paused(conn)
-        if paused:
-            text = "Бот отдыхает 😴\nОсновная практика временно закрыта.\n\nДоступны:"
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("Практика на пару 16.05", web_app=WebAppInfo(url=BASE_URL + "/express.html"))],
-                [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
-            ])
-        else:
-            text = "Практика: Метрики сайта\n\nВыбери что открыть:"
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("Пройти практику", web_app=WebAppInfo(url=BASE_URL))],
-                [InlineKeyboardButton("Практика на пару 16.05", web_app=WebAppInfo(url=BASE_URL + "/express.html"))],
-                [InlineKeyboardButton("Пройти тест по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
-                [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
-            ])
+        # Students see only the active class practice (16.05). Other surfaces
+        # (main practice / quiz / metrics trainer) remain in admin menu and as
+        # direct URLs, but the /start button list is intentionally trimmed.
+        text = "Практика на пару 16.05\n\nОткройте задание:"
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Практика на пару 16.05", web_app=WebAppInfo(url=BASE_URL + "/express.html"))],
+        ])
     await update.message.reply_text(text, reply_markup=keyboard)
 
 
