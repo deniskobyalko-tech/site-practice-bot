@@ -93,6 +93,10 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
         student = await get_student_by_telegram_id(conn, telegram_id)
         if not student:
             raise HTTPException(404, "Student not found")
+        # Lock submissions once all 3 steps are done — prevents winners from overwriting graded work.
+        progress = await get_student_progress(conn, student["id"])
+        if progress["status"] == "submitted" and telegram_id != admin_telegram_id:
+            raise HTTPException(409, "Practice already submitted")
         body = await request.json()
         await save_submission(conn, student["id"], step, body)
         progress = await get_student_progress(conn, student["id"])

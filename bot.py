@@ -29,6 +29,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             text = "Практика: Метрики сайта\n\nВыбери что открыть:"
             keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("Пройти практику", web_app=WebAppInfo(url=BASE_URL))],
                 [InlineKeyboardButton("Пройти тест по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
                 [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
             ])
@@ -156,6 +157,35 @@ async def allow(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Пользователь {tg_id} добавлен в белый список. Может проходить практику.")
 
 
+async def reset_tests(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_TELEGRAM_ID:
+        return
+    if not context.args:
+        await update.message.reply_text("Использование: /reset_tests <telegram_id>")
+        return
+    try:
+        tg_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("ID должен быть числом.")
+        return
+    conn: aiosqlite.Connection = context.bot_data["db_conn"]
+    cursor = await conn.execute(
+        "SELECT id, name, group_name FROM students WHERE telegram_id = ?", (tg_id,)
+    )
+    row = await cursor.fetchone()
+    if not row:
+        await update.message.reply_text(f"Студент с telegram_id {tg_id} не найден.")
+        return
+    student_id, name, group_name = row[0], row[1], row[2]
+    await conn.execute("DELETE FROM submissions WHERE student_id = ?", (student_id,))
+    await conn.execute("DELETE FROM quiz_submissions WHERE student_id = ?", (student_id,))
+    await conn.commit()
+    await update.message.reply_text(
+        f"Тесты сброшены для {name} ({group_name}, tg_id={tg_id}).\n"
+        f"Студент может пройти практику и тест по метрикам заново."
+    )
+
+
 async def fallback_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id == ADMIN_TELEGRAM_ID:
         return
@@ -171,5 +201,6 @@ def create_bot(conn: aiosqlite.Connection) -> Application:
     app.add_handler(CommandHandler("congrats", congrats))
     app.add_handler(CommandHandler("send_results", send_results))
     app.add_handler(CommandHandler("allow", allow))
+    app.add_handler(CommandHandler("reset_tests", reset_tests))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, fallback_message))
     return app
