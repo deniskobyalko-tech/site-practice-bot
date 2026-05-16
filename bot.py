@@ -2,16 +2,18 @@ import aiosqlite
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 from config import TELEGRAM_TOKEN, BASE_URL, ADMIN_TELEGRAM_ID
-from db import is_paused, set_paused, add_to_whitelist
+from db import is_paused, set_paused, add_to_whitelist, is_express_closed, set_express_closed
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    conn: aiosqlite.Connection = context.bot_data["db_conn"]
+    express_closed = await is_express_closed(conn)
     if user_id == ADMIN_TELEGRAM_ID:
-        conn: aiosqlite.Connection = context.bot_data["db_conn"]
         paused = await is_paused(conn)
         status = "На паузе" if paused else "Активна"
-        text = f"Панель преподавателя:\nПрактика: {status}"
+        express_status = "ЗАКРЫТА" if express_closed else "открыта"
+        text = f"Панель преподавателя:\nПрактика: {status}\nПара 16.05: {express_status}"
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("Результаты", web_app=WebAppInfo(url=BASE_URL + "/admin.html"))],
             [InlineKeyboardButton("Пройти как студент", web_app=WebAppInfo(url=BASE_URL))],
@@ -19,6 +21,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Пройти тест по метрикам", web_app=WebAppInfo(url=BASE_URL + "/quiz.html"))],
             [InlineKeyboardButton("Тренажёр метрик", web_app=WebAppInfo(url=BASE_URL + "/metrics.html"))],
         ])
+    elif express_closed:
+        # Hard close: no buttons, text-only message. Backend also rejects /api/express/step.
+        text = "Практика на пару 16.05 закрыта 🔒\n\nКто не успел — сдаст в следующий раз."
+        keyboard = None
     else:
         # Students see only the active class practice (16.05). Other surfaces
         # (main practice / quiz / metrics trainer) remain in admin menu and as
@@ -44,6 +50,26 @@ async def resume(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn: aiosqlite.Connection = context.bot_data["db_conn"]
     await set_paused(conn, False)
     await update.message.reply_text("Практика возобновлена. Новые студенты могут начинать.")
+
+
+async def close_express(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_TELEGRAM_ID:
+        return
+    conn: aiosqlite.Connection = context.bot_data["db_conn"]
+    await set_express_closed(conn, True)
+    await update.message.reply_text(
+        "🔒 «Практика на пару 16.05» закрыта.\n"
+        "Студенты в /start увидят сообщение «закрыта», сохранение шагов в API → 409.\n"
+        "Открыть обратно: /open_express"
+    )
+
+
+async def open_express(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_TELEGRAM_ID:
+        return
+    conn: aiosqlite.Connection = context.bot_data["db_conn"]
+    await set_express_closed(conn, False)
+    await update.message.reply_text("🔓 «Практика на пару 16.05» снова открыта.")
 
 
 CONGRATS_TEXT = (
@@ -195,6 +221,8 @@ def create_bot(conn: aiosqlite.Connection) -> Application:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("pause", pause))
     app.add_handler(CommandHandler("resume", resume))
+    app.add_handler(CommandHandler("close_express", close_express))
+    app.add_handler(CommandHandler("open_express", open_express))
     app.add_handler(CommandHandler("congrats", congrats))
     app.add_handler(CommandHandler("send_results", send_results))
     app.add_handler(CommandHandler("allow", allow))

@@ -12,6 +12,7 @@ from db import (
     save_submission, get_student_progress, get_submissions, get_sites, seed_sites,
     create_web_token, get_student_by_web_token, delete_web_tokens,
     is_paused, get_whitelist,
+    is_express_closed,
     save_quiz_submission, get_quiz_submission, get_quiz_submissions_all, delete_quiz_submission,
     save_express_submission, get_express_submissions,
     get_express_progress, get_express_submissions_all, delete_express_submissions,
@@ -357,6 +358,10 @@ def create_app(conn: aiosqlite.Connection, bot_token: str, admin_telegram_id: in
             raise HTTPException(400, "Answers must be an object")
 
         progress = await get_express_progress(conn, student["id"])
+
+        # Hard close: admin can shut the whole practice down via /close_express.
+        if (await is_express_closed(conn)) and telegram_id != admin_telegram_id:
+            raise HTTPException(409, "Express practice is closed")
 
         # Lock once all 9 cells are filled (admin still allowed to overwrite).
         already_done = step in progress["completed_by_topic"].get(topic, [])

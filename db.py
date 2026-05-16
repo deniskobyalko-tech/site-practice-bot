@@ -238,6 +238,15 @@ async def set_paused(conn, paused: bool) -> None:
     await set_setting(conn, "paused", "true" if paused else "false")
 
 
+async def is_express_closed(conn) -> bool:
+    """Hard close for 'Практика на пару 16.05' — blocks new submissions in API."""
+    return (await get_setting(conn, "express_closed", "false")) == "true"
+
+
+async def set_express_closed(conn, closed: bool) -> None:
+    await set_setting(conn, "express_closed", "true" if closed else "false")
+
+
 async def get_whitelist(conn) -> list[int]:
     raw = await get_setting(conn, "whitelist", "")
     if not raw:
